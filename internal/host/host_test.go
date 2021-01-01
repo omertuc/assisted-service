@@ -3,6 +3,7 @@ package host
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -1054,6 +1055,91 @@ var _ = Describe("UpdateInventory", func() {
 				Expect(actualInventory.Disks).Should(Equal(expectedDisks))
 			})
 		}
+	})
+
+	Context("Check update default installation disk", func() {
+		var (
+			originalHost *models.Host
+		)
+
+		BeforeEach(func() {
+			originalHost = getHost(hostId, clusterId, db)
+
+			// These tests assumes this value to be nil, make sure this assumption is correct
+			Expect(originalHost.InstallationDiskPath).To(BeNil())
+		})
+
+		It("Validator error", func() {
+			const testError = errors.New("Some error")
+			mockValidator.EXPECT().GetHostValidDisks(host).Return(
+				[]*models.Disk{}, testError,
+			)
+
+			err := hapi.(*Manager).updateDefaultInstallationDisk(originalHost)
+
+			// No error should be returned - if there are no disks in the inventory yet, we simply
+			// don't set the default disk
+			Expect(err).To(Equal(testError))
+
+			// Make sure the installation disk is still nil
+			updatedHost := getHost(hostId, clusterId, db)
+			Expect(updatedHost.InstallationDiskPath).To(BeNil())
+		})
+
+		It("No disks - no error", func() {
+			mockValidator.EXPECT().GetHostValidDisks(host).Return(
+				[]*models.Disk{}, nil,
+			)
+
+			err := hapi.(*Manager).updateDefaultInstallationDisk(originalHost)
+
+			// No error should be returned - if there are no disks in the inventory yet, we simply
+			// don't set the default disk
+			Expect(err).To(BeNil())
+
+			// Make sure the installation disk is still nil
+			updatedHost := getHost(hostId, clusterId, db)
+			Expect(updatedHost.InstallationDiskPath).To(BeNil())
+		})
+
+		Context("Happy path", func() {
+			const (
+				diskName      = "FirstDisk"
+				otherDiskName = "SecondDisk"
+			)
+
+			It("One disk", func() {
+				mockValidator.EXPECT().GetHostValidDisks(originalHost).Return(
+					[]*models.Disk{
+						{Name: diskName},
+					}, nil,
+				)
+
+				err := hapi.(*Manager).updateDefaultInstallationDisk(originalHost)
+				Expect(err).To(BeNil())
+
+				updatedHost := getHost(hostId, clusterId, db)
+				Expect(updatedHost.InstallationDiskPath).To(Equal(GetDeviceFullName(diskName)))
+			})
+
+			It("Two disk", func() {
+				mockValidator.EXPECT().GetHostValidDisks(originalHost).Return(
+					[]*models.Disk{
+						{Name: diskName},
+						{Name: otherDiskName},
+					}, nil,
+				)
+
+			})
+			AfterEach(func (){
+				err := hapi.(*Manager).updateDefaultInstallationDisk(originalHost)
+				Expect(err).To(BeNil())
+
+				updatedHost := getHost(hostId, clusterId, db)
+				Expect(updatedHost.InstallationDiskPath).To(Equal(GetDeviceFullName(diskName)))
+			})
+		})
+
 	})
 
 	Context("enable host", func() {

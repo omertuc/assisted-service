@@ -241,6 +241,31 @@ func (m *Manager) populateDisksEligibility(inventoryString string) (string, erro
 	return string(result), nil
 }
 
+// updateDefaultInstallationDisk updates the host's installation_disk column with the ID of the disk the service
+// will install on by default
+func (m *Manager) updateDefaultInstallationDisk(host *models.Host) error {
+	// Once the installation disk path has been set, we no longer change it, even when an inventory update occurs.
+	// This is because this field can also be set by the user via the API, and we don't want inventory updates to
+	// override the user's choice.
+	if host.InstallationDiskPath != "" {
+		return nil
+	}
+
+	disks, err := m.hwValidator.GetHostValidDisks(host)
+	if err != nil {
+		return err
+	}
+
+	if len(disks) == 0 {
+		m.log.Warnf(`Host "%s" reported an inventory without disks eligible for installation`, host.ID)
+		return nil
+	}
+
+	host.InstallationDiskPath = GetDeviceFullName(disks[0].Name)
+
+	return nil
+}
+
 func (m *Manager) HandlePrepareInstallationFailure(ctx context.Context, h *models.Host, reason string) error {
 
 	lastStatusUpdateTime := h.StatusUpdatedAt
@@ -270,7 +295,14 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 		return err
 	}
 
-	return m.db.Model(h).Update("inventory", h.Inventory).Error
+	if err = m.updateDefaultInstallationDisk(h); err != nil {
+		return err
+	}
+
+	return m.db.Model(h).Update(models.Host{
+		Inventory: h.Inventory,
+		InstallationDiskPath: h.InstallationDiskPath,
+	}).Error
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error {
