@@ -242,28 +242,32 @@ func (m *Manager) populateDisksEligibility(inventoryString string) (string, erro
 }
 
 // updateDefaultInstallationDisk updates the host's installation_disk column with the ID of the disk the service
-// will install on by default
-func (m *Manager) updateDefaultInstallationDisk(host *models.Host) error {
-	// Once the installation disk path has been set, we no longer change it, even when an inventory update occurs.
-	// This is because this field can also be set by the user via the API, and we don't want inventory updates to
-	// override the user's choice.
+// will install on by default.
+//
+// Once the installation disk path has been set, we no longer change it, even when an inventory update occurs.
+// This is because this field can also be set by the user via the API, and we don't want inventory updates to
+// override the user's choice. However, if the disk that was set is no longer part of the inventory, empty this
+// field because it's no longer up to date.
+func updateDefaultInstallationDisk(host *models.Host, validDisks []*models.Disk) {
 	if host.InstallationDiskPath != "" {
-		return nil
+		matchedInstallationDisk := funk.Find(validDisks, func(disk *models.Disk) bool {
+			return hostutil.GetDeviceFullName(disk.Name) == host.InstallationDiskPath
+		})
+
+		if matchedInstallationDisk != nil {
+			// Nothing to be done, disk is still present in the new inventory - cannot be replaced
+			return
+		}
+
+		// Disk no longer part of the inventory, it can no longer be the installation disk
+		host.InstallationDiskPath = ""
 	}
 
-	disks, err := m.hwValidator.GetHostValidDisks(host)
-	if err != nil {
-		return err
+	if len(validDisks) == 0 {
+		return
 	}
 
-	if len(disks) == 0 {
-		m.log.Warnf(`Host "%s" reported an inventory without disks eligible for installation`, host.ID)
-		return nil
-	}
-
-	host.InstallationDiskPath = GetDeviceFullName(disks[0].Name)
-
-	return nil
+	host.InstallationDiskPath = GetDeviceFullName(validDisks[0].Name)
 }
 
 func (m *Manager) HandlePrepareInstallationFailure(ctx context.Context, h *models.Host, reason string) error {
@@ -295,13 +299,16 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 		return err
 	}
 
-	if err = m.updateDefaultInstallationDisk(h); err != nil {
+	validDisks, err := m.hwValidator.GetHostValidDisks(h)
+	if err != nil {
 		return err
 	}
 
-	return m.db.Model(h).Update(models.Host{
-		Inventory: h.Inventory,
-		InstallationDiskPath: h.InstallationDiskPath,
+	updateDefaultInstallationDisk(h, validDisks)
+
+	return m.db.Model(h).Update(map[string]interface{}{
+		"Inventory":            h.Inventory,
+		"InstallationDiskPath": h.InstallationDiskPath,
 	}).Error
 }
 
