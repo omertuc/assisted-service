@@ -241,33 +241,28 @@ func (m *Manager) populateDisksEligibility(inventoryString string) (string, erro
 	return string(result), nil
 }
 
-// updateDefaultInstallationDisk updates the host's installation_disk column with the ID of the disk the service
-// will install on by default.
+// determineDefaultInstallationDisk considers both the previously set installation disk and the current list of valid
+// disks to determine the current required installation disk.
 //
-// Once the installation disk path has been set, we no longer change it, even when an inventory update occurs.
-// This is because this field can also be set by the user via the API, and we don't want inventory updates to
-// override the user's choice. However, if the disk that was set is no longer part of the inventory, empty this
-// field because it's no longer up to date.
-func updateDefaultInstallationDisk(host *models.Host, validDisks []*models.Disk) {
-	if host.InstallationDiskPath != "" {
-		matchedInstallationDisk := funk.Find(validDisks, func(disk *models.Disk) bool {
-			return hostutil.GetDeviceFullName(disk.Name) == host.InstallationDiskPath
-		})
-
-		if matchedInstallationDisk != nil {
-			// Nothing to be done, disk is still present in the new inventory - cannot be replaced
-			return
+// Once the installation disk has been set, we usually no longer change it, even when an inventory update occurs
+// that contains new disks that might be better "fit" for installation. This is because this field can also be set by
+// the user via the API, and we don't want inventory updates to override the user's choice. However, if the disk that
+// was set is no longer part of the inventory, the new installation disk is re-evaluated because it is not longer
+// a valid choice.
+func determineDefaultInstallationDisk(previousInstallationDisk string, validDisks []*models.Disk) string {
+	if previousInstallationDisk != "" {
+		if funk.Find(validDisks, func(disk *models.Disk) bool {
+			return hostutil.GetDeviceFullName(disk.Name) == previousInstallationDisk
+		}) != nil {
+			return previousInstallationDisk
 		}
-
-		// Disk no longer part of the inventory, it can no longer be the installation disk
-		host.InstallationDiskPath = ""
 	}
 
 	if len(validDisks) == 0 {
-		return
+		return ""
 	}
 
-	host.InstallationDiskPath = GetDeviceFullName(validDisks[0].Name)
+	return GetDeviceFullName(validDisks[0].Name)
 }
 
 func (m *Manager) HandlePrepareInstallationFailure(ctx context.Context, h *models.Host, reason string) error {
@@ -304,11 +299,11 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 		return err
 	}
 
-	updateDefaultInstallationDisk(h, validDisks)
+	h.InstallationDiskPath = determineDefaultInstallationDisk(h.InstallationDiskPath, validDisks)
 
 	return m.db.Model(h).Update(map[string]interface{}{
-		"Inventory":            h.Inventory,
-		"InstallationDiskPath": h.InstallationDiskPath,
+		"inventory":              h.Inventory,
+		"installation_disk_path": h.InstallationDiskPath,
 	}).Error
 }
 
