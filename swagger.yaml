@@ -3054,6 +3054,9 @@ definitions:
       inventory:
         x-go-custom-tag: gorm:"type:text"
         type: string
+      machine_network_cidr_interface:
+        type: string
+        description: The name of the network interface matching the selected machine_network_cidr
       free_addresses:
         x-go-custom-tag: gorm:"type:text"
         type: string
