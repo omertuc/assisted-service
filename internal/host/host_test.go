@@ -772,13 +772,18 @@ func getTestHostAddedToCluster(hostID, clusterID strfmt.UUID, state string) mode
 
 func getTestHostByKind(hostID, clusterID strfmt.UUID, state, kind string) models.Host {
 	return models.Host{
-		ID:                 &hostID,
-		ClusterID:          clusterID,
-		Status:             swag.String(state),
-		Inventory:          defaultInventory(),
-		Role:               models.HostRoleWorker,
-		Kind:               swag.String(kind),
-		CheckedInAt:        strfmt.DateTime(time.Now()),
+		ID:              &hostID,
+		ClusterID:       clusterID,
+		Status:          swag.String(state),
+		Inventory:       defaultInventory(),
+		Role:            models.HostRoleWorker,
+		Kind:            swag.String(kind),
+		CheckedInAt:     strfmt.DateTime(time.Now()),
+		StatusUpdatedAt: strfmt.DateTime(time.Now().Add(-1 * time.Minute)),
+		StageUpdatedAt:  strfmt.DateTime(time.Now().Add(-1 * time.Minute)),
+		Progress: &models.HostProgressInfo{
+			StageUpdatedAt: strfmt.DateTime(time.Now().Add(-1 * time.Minute)),
+		},
 		APIVipConnectivity: getTestAPIVIpConnectivity(),
 	}
 }
