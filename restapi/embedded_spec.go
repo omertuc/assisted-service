@@ -5488,6 +5488,10 @@ func init() {
         "machine_config_pool_name": {
           "type": "string"
         },
+        "machine_network_cidr_interface": {
+          "description": "The name of the network interface matching the selected machine_network_cidr",
+          "type": "string"
+        },
         "ntp_sources": {
           "description": "The configured NTP sources on the host.",
           "type": "string",
@@ -11931,6 +11935,10 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "machine_config_pool_name": {
+          "type": "string"
+        },
+        "machine_network_cidr_interface": {
+          "description": "The name of the network interface matching the selected machine_network_cidr",
           "type": "string"
         },
         "ntp_sources": {

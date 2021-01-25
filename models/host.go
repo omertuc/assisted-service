@@ -90,6 +90,9 @@ type Host struct {
 	// machine config pool name
 	MachineConfigPoolName string `json:"machine_config_pool_name,omitempty"`
 
+	// The name of the network interface matching the selected machine_network_cidr
+	MachineNetworkCidrInterface string `json:"machine_network_cidr_interface,omitempty"`
+
 	// The configured NTP sources on the host.
 	NtpSources string `json:"ntp_sources,omitempty" gorm:"type:text"`
 
