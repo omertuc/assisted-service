@@ -105,11 +105,24 @@ generate-go-server:
 		quay.io/goswagger/swagger:v0.25.0 generate server --template=stratoscale -f swagger.yaml \
 		--template-dir=/templates/contrib
 
+GO_OPENAPI_VERSION = \
+	github.com/go-openapi/errors@v0.19.6 \
+	github.com/go-openapi/loads@v0.19.5 \
+	github.com/go-openapi/runtime@v0.19.20 \
+	github.com/go-openapi/spec@v0.19.8 \
+	github.com/go-openapi/strfmt@v0.19.5 \
+	github.com/go-openapi/swag@v0.19.9 \
+	github.com/go-openapi/validate@v0.19.10 
+
 generate-go-client:
 	rm -rf client models
 	docker run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
 		quay.io/goswagger/swagger:v0.25.0 generate client --template=stratoscale -f swagger.yaml \
 		--template-dir=/templates/contrib
+	cd models && go mod init github.com/openshift/assisted-service/models && go get $(GO_OPENAPI_VERSION) && go get
+	cd client && go mod init github.com/openshift/assisted-service/client
+	cd client && echo 'replace github.com/openshift/assisted-service/models => ../models' >> go.mod
+	cd client && go get $(GO_OPENAPI_VERSION) && go get
 
 generate-python-client: $(BUILD_FOLDER)
 	rm -rf $(BUILD_FOLDER)/assisted-service-client*
