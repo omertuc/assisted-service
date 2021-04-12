@@ -333,8 +333,10 @@ deploy-grafana: $(BUILD_FOLDER)
 deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 
 _test: $(REPORTS)
-	gotestsum $(GOTEST_FLAGS) $(TEST) $(GINKGO_FLAGS) -timeout $(TIMEOUT) || ($(MAKE) _post_test && /bin/false)
-	$(MAKE) _post_test
+	for suite in $(TEST); do \
+		ginkgo -p $$suite & \
+	done; \
+	wait
 
 _post_test: $(REPORTS)
 	for name in `find -name 'junit*.xml' -type f`; do \
@@ -352,7 +354,7 @@ unit-test:
 	docker run -d  --rm --tmpfs /var/lib/postgresql/data --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 \
 		quay.io/ocpmetal/postgres:12.3-alpine -c 'max_connections=10000'
 	timeout 5m ./hack/wait_for_postgres.sh
-	SKIP_UT_DB=1 $(MAKE) _test TEST_SCENARIO=unit TIMEOUT=30m TEST="$(or $(TEST),$(shell go list ./... | grep -v subsystem))" || (docker kill postgres && /bin/false)
+	SKIP_UT_DB=1 $(MAKE) _test TEST_SCENARIO=unit TIMEOUT=30m TEST="$(or $(TEST),$(shell go list ./... | grep -v subsystem | sed -e 's,github.com/openshift/assisted-service/,,g'))" || (docker kill postgres && /bin/false)
 	docker kill postgres
 
 $(REPORTS):
