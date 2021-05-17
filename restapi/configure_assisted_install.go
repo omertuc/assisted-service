@@ -84,6 +84,9 @@ type InstallerAPI interface {
 	/* DownloadClusterISO Downloads the OpenShift per-cluster Discovery ISO. */
 	DownloadClusterISO(ctx context.Context, params installer.DownloadClusterISOParams) middleware.Responder
 
+	/* DownloadClusterISOClone Downloads the OpenShift per-cluster Discovery ISO. Provided for compatability with Dell IDRAC. */
+	DownloadClusterISOClone(ctx context.Context, params installer.DownloadClusterISOCloneParams) middleware.Responder
+
 	/* DownloadClusterISOHeaders Downloads the OpenShift per-cluster Discovery ISO Headers only. */
 	DownloadClusterISOHeaders(ctx context.Context, params installer.DownloadClusterISOHeadersParams) middleware.Responder
 
@@ -414,6 +417,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DownloadClusterISO(ctx, params)
+	})
+	api.InstallerDownloadClusterISOCloneHandler = installer.DownloadClusterISOCloneHandlerFunc(func(params installer.DownloadClusterISOCloneParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.DownloadClusterISOClone(ctx, params)
 	})
 	api.InstallerDownloadClusterISOHeadersHandler = installer.DownloadClusterISOHeadersHandlerFunc(func(params installer.DownloadClusterISOHeadersParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

@@ -133,6 +133,20 @@ func (mr *MockInstallerAPIMockRecorder) DownloadClusterISO(arg0, arg1 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadClusterISO", reflect.TypeOf((*MockInstallerAPI)(nil).DownloadClusterISO), arg0, arg1)
 }
 
+// DownloadClusterISOClone mocks base method
+func (m *MockInstallerAPI) DownloadClusterISOClone(arg0 context.Context, arg1 installer.DownloadClusterISOCloneParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DownloadClusterISOClone", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// DownloadClusterISOClone indicates an expected call of DownloadClusterISOClone
+func (mr *MockInstallerAPIMockRecorder) DownloadClusterISOClone(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadClusterISOClone", reflect.TypeOf((*MockInstallerAPI)(nil).DownloadClusterISOClone), arg0, arg1)
+}
+
 // DownloadClusterISOHeaders mocks base method
 func (m *MockInstallerAPI) DownloadClusterISOHeaders(arg0 context.Context, arg1 installer.DownloadClusterISOHeadersParams) middleware.Responder {
 	m.ctrl.T.Helper()

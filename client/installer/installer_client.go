@@ -40,6 +40,9 @@ type API interface {
 	   DownloadClusterISO Downloads the OpenShift per-cluster Discovery ISO.*/
 	DownloadClusterISO(ctx context.Context, params *DownloadClusterISOParams, writer io.Writer) (*DownloadClusterISOOK, error)
 	/*
+	   DownloadClusterISOClone Downloads the OpenShift per-cluster Discovery ISO. Provided for compatability with Dell IDRAC.*/
+	DownloadClusterISOClone(ctx context.Context, params *DownloadClusterISOCloneParams, writer io.Writer) (*DownloadClusterISOCloneOK, error)
+	/*
 	   DownloadClusterISOHeaders Downloads the OpenShift per-cluster Discovery ISO Headers only.*/
 	DownloadClusterISOHeaders(ctx context.Context, params *DownloadClusterISOHeadersParams) (*DownloadClusterISOHeadersOK, error)
 	/*
@@ -365,6 +368,31 @@ func (a *Client) DownloadClusterISO(ctx context.Context, params *DownloadCluster
 		return nil, err
 	}
 	return result.(*DownloadClusterISOOK), nil
+
+}
+
+/*
+DownloadClusterISOClone Downloads the OpenShift per-cluster Discovery ISO. Provided for compatability with Dell IDRAC.
+*/
+func (a *Client) DownloadClusterISOClone(ctx context.Context, params *DownloadClusterISOCloneParams, writer io.Writer) (*DownloadClusterISOCloneOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DownloadClusterISOClone",
+		Method:             "GET",
+		PathPattern:        "/clusters/{cluster_id}/downloads/image.iso",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &DownloadClusterISOCloneReader{formats: a.formats, writer: writer},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DownloadClusterISOCloneOK), nil
 
 }
 
