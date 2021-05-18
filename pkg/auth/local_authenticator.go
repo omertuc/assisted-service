@@ -2,6 +2,7 @@ package auth
 
 import (
 	"crypto"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -49,6 +50,7 @@ func (a *LocalAuthenticator) AuthType() AuthType {
 }
 
 func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
+	token = strings.ReplaceAll(token, ",", ".")
 	t, err := validateToken(token, a.publicKey)
 	if err != nil {
 		a.log.WithError(err).Error("failed to validate token")
