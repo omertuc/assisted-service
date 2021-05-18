@@ -92,6 +92,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerDownloadClusterISOHeadersHandler: installer.DownloadClusterISOHeadersHandlerFunc(func(params installer.DownloadClusterISOHeadersParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadClusterISOHeaders has not yet been implemented")
 		}),
+		InstallerDownloadClusterISOHeadersCloneHandler: installer.DownloadClusterISOHeadersCloneHandlerFunc(func(params installer.DownloadClusterISOHeadersCloneParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.DownloadClusterISOHeadersClone has not yet been implemented")
+		}),
 		InstallerDownloadClusterKubeconfigHandler: installer.DownloadClusterKubeconfigHandlerFunc(func(params installer.DownloadClusterKubeconfigParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadClusterKubeconfig has not yet been implemented")
 		}),
@@ -350,6 +353,8 @@ type AssistedInstallAPI struct {
 	InstallerDownloadClusterISOCloneHandler installer.DownloadClusterISOCloneHandler
 	// InstallerDownloadClusterISOHeadersHandler sets the operation handler for the download cluster i s o headers operation
 	InstallerDownloadClusterISOHeadersHandler installer.DownloadClusterISOHeadersHandler
+	// InstallerDownloadClusterISOHeadersCloneHandler sets the operation handler for the download cluster i s o headers clone operation
+	InstallerDownloadClusterISOHeadersCloneHandler installer.DownloadClusterISOHeadersCloneHandler
 	// InstallerDownloadClusterKubeconfigHandler sets the operation handler for the download cluster kubeconfig operation
 	InstallerDownloadClusterKubeconfigHandler installer.DownloadClusterKubeconfigHandler
 	// InstallerDownloadClusterLogsHandler sets the operation handler for the download cluster logs operation
@@ -588,6 +593,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerDownloadClusterISOHeadersHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadClusterISOHeadersHandler")
+	}
+	if o.InstallerDownloadClusterISOHeadersCloneHandler == nil {
+		unregistered = append(unregistered, "installer.DownloadClusterISOHeadersCloneHandler")
 	}
 	if o.InstallerDownloadClusterKubeconfigHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadClusterKubeconfigHandler")
@@ -912,6 +920,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["HEAD"] = make(map[string]http.Handler)
 	}
 	o.handlers["HEAD"]["/clusters/{cluster_id}/downloads/image"] = installer.NewDownloadClusterISOHeaders(o.context, o.InstallerDownloadClusterISOHeadersHandler)
+	if o.handlers["HEAD"] == nil {
+		o.handlers["HEAD"] = make(map[string]http.Handler)
+	}
+	o.handlers["HEAD"]["/clusters/{cluster_id}/downloads/image.iso"] = installer.NewDownloadClusterISOHeadersClone(o.context, o.InstallerDownloadClusterISOHeadersCloneHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

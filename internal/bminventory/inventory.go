@@ -761,6 +761,10 @@ func (b *bareMetalInventory) DownloadClusterISOHeaders(ctx context.Context, para
 	return installer.NewDownloadClusterISOHeadersOK().WithContentLength(imgSize)
 }
 
+func (b *bareMetalInventory) DownloadClusterISOHeadersClone(ctx context.Context, params installer.DownloadClusterISOHeadersCloneParams) middleware.Responder {
+	return b.DownloadClusterISOHeaders(ctx, installer.DownloadClusterISOHeadersParams(params))
+}
+
 func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, cluster *common.Cluster, clusterProxyHash string, imageType models.ImageType, generated bool) error {
 	updates := map[string]interface{}{}
 	imgName := getImageName(*cluster.ID)

@@ -46,6 +46,9 @@ type API interface {
 	   DownloadClusterISOHeaders Downloads the OpenShift per-cluster Discovery ISO Headers only.*/
 	DownloadClusterISOHeaders(ctx context.Context, params *DownloadClusterISOHeadersParams) (*DownloadClusterISOHeadersOK, error)
 	/*
+	   DownloadClusterISOHeadersClone Downloads the OpenShift per-cluster Discovery ISO Headers only.*/
+	DownloadClusterISOHeadersClone(ctx context.Context, params *DownloadClusterISOHeadersCloneParams) (*DownloadClusterISOHeadersCloneOK, error)
+	/*
 	   DownloadClusterKubeconfig Downloads the kubeconfig file for this cluster.*/
 	DownloadClusterKubeconfig(ctx context.Context, params *DownloadClusterKubeconfigParams, writer io.Writer) (*DownloadClusterKubeconfigOK, error)
 	/*
@@ -418,6 +421,31 @@ func (a *Client) DownloadClusterISOHeaders(ctx context.Context, params *Download
 		return nil, err
 	}
 	return result.(*DownloadClusterISOHeadersOK), nil
+
+}
+
+/*
+DownloadClusterISOHeadersClone Downloads the OpenShift per-cluster Discovery ISO Headers only.
+*/
+func (a *Client) DownloadClusterISOHeadersClone(ctx context.Context, params *DownloadClusterISOHeadersCloneParams) (*DownloadClusterISOHeadersCloneOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DownloadClusterISOHeadersClone",
+		Method:             "HEAD",
+		PathPattern:        "/clusters/{cluster_id}/downloads/image.iso",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &DownloadClusterISOHeadersCloneReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DownloadClusterISOHeadersCloneOK), nil
 
 }
 

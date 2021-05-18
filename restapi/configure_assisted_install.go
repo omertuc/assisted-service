@@ -90,6 +90,9 @@ type InstallerAPI interface {
 	/* DownloadClusterISOHeaders Downloads the OpenShift per-cluster Discovery ISO Headers only. */
 	DownloadClusterISOHeaders(ctx context.Context, params installer.DownloadClusterISOHeadersParams) middleware.Responder
 
+	/* DownloadClusterISOHeadersClone Downloads the OpenShift per-cluster Discovery ISO Headers only. */
+	DownloadClusterISOHeadersClone(ctx context.Context, params installer.DownloadClusterISOHeadersCloneParams) middleware.Responder
+
 	/* DownloadClusterKubeconfig Downloads the kubeconfig file for this cluster. */
 	DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder
 
@@ -427,6 +430,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DownloadClusterISOHeaders(ctx, params)
+	})
+	api.InstallerDownloadClusterISOHeadersCloneHandler = installer.DownloadClusterISOHeadersCloneHandlerFunc(func(params installer.DownloadClusterISOHeadersCloneParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.DownloadClusterISOHeadersClone(ctx, params)
 	})
 	api.InstallerDownloadClusterKubeconfigHandler = installer.DownloadClusterKubeconfigHandlerFunc(func(params installer.DownloadClusterKubeconfigParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

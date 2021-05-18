@@ -100,6 +100,18 @@ func (f fakeInventory) DownloadClusterISOHeaders(ctx context.Context, params ins
 		0)
 }
 
+func (f fakeInventory) DownloadClusterISOHeadersClone(ctx context.Context, params installer.DownloadClusterISOHeadersCloneParams) middleware.Responder {
+	_, err := ioutil.TempFile("/tmp", "test.file")
+	if err != nil {
+		return installer.NewDownloadClusterISOHeadersInternalServerError().WithPayload(
+			common.GenerateError(http.StatusInternalServerError, err))
+	}
+	return filemiddleware.NewResponder(
+		installer.NewDownloadClusterISOHeadersOK(),
+		"test",
+		0)
+}
+
 func (f fakeInventory) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
 	file, err := ioutil.TempFile("/tmp", "test.file")
 	if err != nil {
