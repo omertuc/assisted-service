@@ -1678,6 +1678,9 @@ func init() {
           }
         ],
         "description": "Downloads the OpenShift per-cluster Discovery ISO Headers only.",
+        "produces": [
+          "application/octet-stream"
+        ],
         "tags": [
           "installer"
         ],
@@ -1839,6 +1842,9 @@ func init() {
           }
         ],
         "description": "Downloads the OpenShift per-cluster Discovery ISO Headers only.",
+        "produces": [
+          "application/octet-stream"
+        ],
         "tags": [
           "installer"
         ],
@@ -9446,6 +9452,9 @@ func init() {
           }
         ],
         "description": "Downloads the OpenShift per-cluster Discovery ISO Headers only.",
+        "produces": [
+          "application/octet-stream"
+        ],
         "tags": [
           "installer"
         ],
@@ -9607,6 +9616,9 @@ func init() {
           }
         ],
         "description": "Downloads the OpenShift per-cluster Discovery ISO Headers only.",
+        "produces": [
+          "application/octet-stream"
+        ],
         "tags": [
           "installer"
         ],

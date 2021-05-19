@@ -304,6 +304,8 @@ paths:
         - userAuth: [admin, read-only-admin, user]
         - urlAuth: []
       operationId: DownloadClusterISOHeadersClone
+      produces:
+        - application/octet-stream
       parameters:
         - in: path
           name: cluster_id
@@ -507,6 +509,8 @@ paths:
         - userAuth: [admin, read-only-admin, user]
         - urlAuth: []
       operationId: DownloadClusterISOHeaders
+      produces:
+        - application/octet-stream
       parameters:
         - in: path
           name: cluster_id
