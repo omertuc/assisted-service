@@ -20,8 +20,8 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/diskfs/go-diskfs v1.1.2-0.20210216073915-ba492710e2d8
 	github.com/dustin/go-humanize v1.0.0
+	github.com/filanov/stateswitch v1.0.0
 	github.com/frankban/quicktest v1.11.3 // indirect
-	github.com/go-critic/go-critic v0.5.0 // indirect
 	github.com/go-logr/logr v0.4.0 // indirect
 	github.com/go-logr/zapr v0.2.0 // indirect
 	github.com/go-openapi/errors v0.19.6
@@ -35,13 +35,11 @@ require (
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/mock v1.4.3
 	github.com/golangci/gocyclo v0.0.0-20180528144436-0a533e8fa43d // indirect
-	github.com/golangci/golangci-lint v1.27.0 // indirect
 	github.com/google/renameio v0.1.0
 	github.com/google/uuid v1.1.2
 	github.com/googleapis/gnostic v0.5.1 // indirect
 	github.com/gookit/color v1.2.5 // indirect
 	github.com/gophercloud/gophercloud v0.16.0 // indirect
-	github.com/gostaticanalysis/analysisutil v0.0.4 // indirect
 	github.com/gostaticanalysis/comment v1.3.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-version v1.2.1
@@ -51,9 +49,10 @@ require (
 	github.com/kennygrant/sanitize v1.2.4
 	github.com/kyoh86/exportloopref v0.1.7 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
+	github.com/metal3-io/baremetal-operator v0.0.0-00010101000000-000000000000
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/moby/moby v1.13.1
-	github.com/onsi/ginkgo v1.12.2
+	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/openshift-online/ocm-sdk-go v0.1.190
 	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
@@ -67,7 +66,6 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/polyfloyd/go-errorlint v0.0.0-20201006195004-351e25ade6e3 // indirect
 	github.com/prometheus/client_golang v1.9.0
-	github.com/quasilyte/go-ruleguard v0.1.4 // indirect
 	github.com/rogpeppe/go-internal v1.6.1 // indirect
 	github.com/rs/cors v1.7.0
 	github.com/ryancurrah/gomodguard v1.1.0 // indirect
@@ -95,7 +93,6 @@ require (
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/sys v0.0.0-20210119212857-b64e53b001e4
-	golang.org/x/tools v0.0.0-20200616195046-dc31b401abb5 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.1.0 // indirect
 	gopkg.in/gormigrate.v1 v1.6.0
 	gopkg.in/ini.v1 v1.51.0
@@ -109,7 +106,7 @@ require (
 	k8s.io/component-base v0.20.5 // indirect
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 	mvdan.cc/unparam v0.0.0-20200501210554-b37ab49443f7 // indirect
-	sigs.k8s.io/controller-runtime v0.6.5
+	sigs.k8s.io/controller-runtime v0.7.0
 	sigs.k8s.io/controller-tools v0.4.1 // indirect
 	sigs.k8s.io/kustomize/kustomize/v3 v3.8.5 // indirect
 	sigs.k8s.io/yaml v1.2.0
