@@ -48,6 +48,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -879,6 +880,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 
 func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 10}).
 		For(&aiv1beta1.Agent{}).
 		Watches(&source.Channel{Source: r.CRDEventsHandler.GetAgentUpdates()},
 			&handler.EnqueueRequestForObject{}).
