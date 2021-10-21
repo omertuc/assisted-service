@@ -32,6 +32,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+const monitoringThreshold = 0.4
+
 var BootstrapStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
 	models.HostStageWritingImageToDisk, models.HostStageWaitingForControlPlane,
@@ -375,6 +377,7 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 }
 
 func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *common.Cluster, i *common.InfraEnv, db *gorm.DB) error {
+	defer commonutils.MeasureOperationWithThresholdAndId("HostMonitoring-refreshStatusInternal", m.log, m.metricApi, monitoringThreshold, h.ID.String())()
 	if db == nil {
 		db = m.db
 	}
@@ -388,7 +391,11 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 	if err != nil {
 		return err
 	}
-	conditions, newValidationRes, err = m.rp.preprocess(vc)
+	func() {
+		defer commonutils.MeasureOperationWithThresholdAndId("HostMonitoring-preprocess", m.log, m.metricApi, monitoringThreshold, c.ID.String())()
+		conditions, newValidationRes, err = m.rp.preprocess(vc)
+	}()
+
 	if err != nil {
 		return err
 	}
@@ -417,13 +424,17 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 		}
 	}
 
-	err = m.sm.Run(TransitionTypeRefresh, newStateHost(h), &TransitionArgsRefreshHost{
-		ctx:               ctx,
-		db:                db,
-		eventHandler:      m.eventsHandler,
-		conditions:        conditions,
-		validationResults: newValidationRes,
-	})
+	func() {
+		defer commonutils.MeasureOperationWithThresholdAndId("HostMonitoring-TransitionTypeRefresh", m.log, m.metricApi, monitoringThreshold, c.ID.String())()
+		err = m.sm.Run(TransitionTypeRefresh, newStateHost(h), &TransitionArgsRefreshHost{
+			ctx:               ctx,
+			db:                db,
+			eventHandler:      m.eventsHandler,
+			conditions:        conditions,
+			validationResults: newValidationRes,
+		})
+	}()
+	
 	if err != nil {
 		return common.NewApiError(http.StatusConflict, err)
 	}
@@ -958,6 +969,7 @@ func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.H
 
 func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validationContext, h *models.Host,
 	newValidationRes, currentValidationRes ValidationsStatus) {
+	defer commonutils.MeasureOperationWithThresholdAndId("HostMonitoring-reportValidationStatusChanged", m.log, m.metricApi, 0.5, h.ID.String())()
 	for vCategory, vRes := range newValidationRes {
 		for _, v := range vRes {
 			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
@@ -997,6 +1009,7 @@ func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, cu
 }
 
 func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes ValidationsStatus) (*common.Host, error) {
+	defer commonutils.MeasureOperationWithThresholdAndId("HostMonitoring-updateValidationsInDB", m.log, m.metricApi, monitoringThreshold, h.ID.String())()
 	b, err := json.Marshal(newValidationRes)
 	if err != nil {
 		return nil, err
