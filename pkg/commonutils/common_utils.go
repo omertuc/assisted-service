@@ -24,7 +24,7 @@ func MeasureOperationWithThresholdAndId(operation string, log logrus.FieldLogger
 	return func() {
 		duration := time.Since(start)
 		if duration.Seconds() >= thresholdInSec {
-			log.Warning("%s for %s took : %v", operation, objectId, duration)
+			log.Warnf("%s for %s took : %v %v", operation, objectId, duration, thresholdInSec)
 			if metricsApi != nil {
 				metricsApi.DurationWithThreshold(operation, thresholdInSec, duration)
 			}

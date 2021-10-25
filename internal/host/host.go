@@ -392,7 +392,7 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 		return err
 	}
 	func() {
-		defer commonutils.MeasureOperationWithThresholdAndId("HostMonitoring-preprocess", m.log, m.metricApi, monitoringThreshold, c.ID.String())()
+		defer commonutils.MeasureOperationWithThresholdAndId("HostMonitoring-preprocess", m.log, m.metricApi, monitoringThreshold, h.ID.String())()
 		conditions, newValidationRes, err = m.rp.preprocess(vc)
 	}()
 
@@ -425,7 +425,8 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 	}
 
 	func() {
-		defer commonutils.MeasureOperationWithThresholdAndId("HostMonitoring-TransitionTypeRefresh", m.log, m.metricApi, monitoringThreshold, c.ID.String())()
+		defer commonutils.MeasureOperationWithThresholdAndId("HostMonitoring-TransitionTypeRefresh", m.log, m.metricApi, monitoringThreshold, h.ID.String())()
+
 		err = m.sm.Run(TransitionTypeRefresh, newStateHost(h), &TransitionArgsRefreshHost{
 			ctx:               ctx,
 			db:                db,
