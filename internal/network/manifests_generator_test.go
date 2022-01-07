@@ -192,16 +192,18 @@ var _ = Describe("dnsmasq manifest", func() {
 
 			log := logrus.New()
 
-			content, err := fillTemplate(manifestParams, snoDnsmasqConf, log)
+			dnsmasqConf, err := fillTemplate(manifestParams, snoDnsmasqConfTemplate, log)
 			Expect(err).To(Not(HaveOccurred()))
 
-			forcedns, err := fillTemplate(manifestParams, forceDnsDispatcherScript, log)
+			forcedns, err := fillTemplate(manifestParams, forceDnsmasqDnsNmDispatcherScriptTemplate, log)
 			Expect(err).To(Not(HaveOccurred()))
 
-			created, err := createDnsmasqForSingleNode(log, cluster)
+			machineConfig, err := createDnsmasqMachineConfigForSingleNode(log, cluster)
+			log.Error(machineConfig)
 			Expect(err).To(Not(HaveOccurred()))
-			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(content)))
-			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(forcedns)))
+
+			Expect(machineConfig).To(ContainSubstring(base64.StdEncoding.EncodeToString(dnsmasqConf)))
+			Expect(machineConfig).To(ContainSubstring(base64.StdEncoding.EncodeToString(forcedns)))
 		})
 
 		It("Happy flow ipv6", func() {
@@ -219,13 +221,13 @@ var _ = Describe("dnsmasq manifest", func() {
 
 			log := logrus.New()
 
-			content, err := fillTemplate(manifestParams, snoDnsmasqConf, log)
+			content, err := fillTemplate(manifestParams, snoDnsmasqConfTemplate, log)
 			Expect(err).To(Not(HaveOccurred()))
 
-			forcedns, err := fillTemplate(manifestParams, forceDnsDispatcherScript, log)
+			forcedns, err := fillTemplate(manifestParams, forceDnsmasqDnsNmDispatcherScriptTemplate, log)
 			Expect(err).To(Not(HaveOccurred()))
 
-			created, err := createDnsmasqForSingleNode(log, cluster)
+			created, err := createDnsmasqMachineConfigForSingleNode(log, cluster)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(content)))
 			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(forcedns)))
@@ -245,13 +247,13 @@ var _ = Describe("dnsmasq manifest", func() {
 
 			log := logrus.New()
 
-			content, err := fillTemplate(manifestParams, snoDnsmasqConf, log)
+			content, err := fillTemplate(manifestParams, snoDnsmasqConfTemplate, log)
 			Expect(err).To(Not(HaveOccurred()))
 
-			forcedns, err := fillTemplate(manifestParams, forceDnsDispatcherScript, log)
+			forcedns, err := fillTemplate(manifestParams, forceDnsmasqDnsNmDispatcherScriptTemplate, log)
 			Expect(err).To(Not(HaveOccurred()))
 
-			created, err := createDnsmasqForSingleNode(log, cluster)
+			created, err := createDnsmasqMachineConfigForSingleNode(log, cluster)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(content)))
 			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(forcedns)))
@@ -271,13 +273,13 @@ var _ = Describe("dnsmasq manifest", func() {
 
 			log := logrus.New()
 
-			content, err := fillTemplate(manifestParams, snoDnsmasqConf, log)
+			content, err := fillTemplate(manifestParams, snoDnsmasqConfTemplate, log)
 			Expect(err).To(Not(HaveOccurred()))
 
-			forcedns, err := fillTemplate(manifestParams, forceDnsDispatcherScript, log)
+			forcedns, err := fillTemplate(manifestParams, forceDnsmasqDnsNmDispatcherScriptTemplate, log)
 			Expect(err).To(Not(HaveOccurred()))
 
-			created, err := createDnsmasqForSingleNode(log, cluster)
+			created, err := createDnsmasqMachineConfigForSingleNode(log, cluster)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(content)))
 			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(forcedns)))
@@ -297,13 +299,13 @@ var _ = Describe("dnsmasq manifest", func() {
 
 			log := logrus.New()
 
-			content, err := fillTemplate(manifestParams, snoDnsmasqConf, log)
+			content, err := fillTemplate(manifestParams, snoDnsmasqConfTemplate, log)
 			Expect(err).To(Not(HaveOccurred()))
 
-			forcedns, err := fillTemplate(manifestParams, forceDnsDispatcherScript, log)
+			forcedns, err := fillTemplate(manifestParams, forceDnsmasqDnsNmDispatcherScriptTemplate, log)
 			Expect(err).To(Not(HaveOccurred()))
 
-			created, err := createDnsmasqForSingleNode(log, cluster)
+			created, err := createDnsmasqMachineConfigForSingleNode(log, cluster)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(content)))
 			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(forcedns)))
@@ -313,7 +315,7 @@ var _ = Describe("dnsmasq manifest", func() {
 			cluster := createCluster("", "3.3.3.0/24",
 				createInventory(createInterface("3.3.3.3/24")))
 
-			_, err := createDnsmasqForSingleNode(logrus.New(), cluster)
+			_, err := createDnsmasqMachineConfigForSingleNode(logrus.New(), cluster)
 			Expect(err).To(HaveOccurred())
 		})
 	})

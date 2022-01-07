@@ -79,87 +79,6 @@ spec:
   osImageURL: ""
 `
 
-const snoDnsmasqConf = `
-address=/apps.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
-address=/api-int.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
-address=/api.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
-`
-
-const unmanagedResolvConf = `
-[main]
-rc-manager=unmanaged
-`
-
-const forceDnsDispatcherScript = `
-export IP="{{.HOST_IP}}"
-export BASE_RESOLV_CONF=/run/NetworkManager/resolv.conf
-if [ "$2" = "dhcp4-change" ] || [ "$2" = "dhcp6-change" ] || [ "$2" = "up" ] || [ "$2" = "connectivity-change" ]; then
-    if ! grep -q "$IP" /etc/resolv.conf; then
-      export TMP_FILE=$(mktemp /etc/forcedns_resolv.conf.XXXXXX)
-      cp  $BASE_RESOLV_CONF $TMP_FILE
-      chmod --reference=$BASE_RESOLV_CONF $TMP_FILE
-      sed -i -e "s/{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}//" \
-      -e "s/search /& {{.CLUSTER_NAME}}.{{.DNS_DOMAIN}} /" \
-      -e "0,/nameserver/s/nameserver/& $IP\n&/" $TMP_FILE
-      mv $TMP_FILE /etc/resolv.conf
-    fi
-fi
-`
-
-const dnsMachineConfigManifest = `
-apiVersion: machineconfiguration.openshift.io/v1
-kind: MachineConfig
-metadata:
-  labels:
-    machineconfiguration.openshift.io/role: master
-  name: 50-master-dnsmasq-configuration
-spec:
-  config:
-    ignition:
-      config: {}
-      security:
-        tls: {}
-      timeouts: {}
-      version: 2.2.0
-    networkd: {}
-    passwd: {}
-    storage:
-      files:
-        - contents:
-            source: data:text/plain;charset=utf-8;base64,{{.DNSMASQ_CONTENT}}
-            verification: {}
-          filesystem: root
-          mode: 420
-          path: /etc/dnsmasq.d/single-node.conf
-        - contents:
-            source: data:text/plain;charset=utf-8;base64,{{.FORCE_DNS_SCRIPT}}
-            verification: {}
-          filesystem: root
-          mode: 365
-          path: /etc/NetworkManager/dispatcher.d/forcedns
-        - contents:
-            source: data:text/plain;charset=utf-8;base64,{{.UNMANAGED_RESOLV_CONF}}
-            verification: {}
-          filesystem: root
-          mode: 420
-          path: /etc/NetworkManager/conf.d/single-node.conf
-    systemd:
-      units:
-        - name: dnsmasq.service
-          enabled: true
-          contents: |
-            [Unit]
-            Description=Run dnsmasq to provide local dns for Single Node OpenShift
-            Before=kubelet.service crio.service
-            After=network.target
-
-            [Service]
-            ExecStart=/usr/sbin/dnsmasq -k
-
-            [Install]
-            WantedBy=multi-user.target
-`
-
 const schedulableMastersManifest = `
 apiVersion: config.openshift.io/v1
 kind: Scheduler
@@ -374,54 +293,13 @@ func (m *ManifestsGenerator) createManifests(ctx context.Context, cluster *commo
 func (m *ManifestsGenerator) AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error {
 	filename := "dnsmasq-bootstrap-in-place.yaml"
 
-	content, err := createDnsmasqForSingleNode(log, cluster)
+	content, err := createDnsmasqMachineConfigForSingleNode(log, cluster)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to create dnsmasq manifest")
 		return err
 	}
 
 	return m.createManifests(ctx, cluster, filename, content)
-}
-
-func createDnsmasqForSingleNode(log logrus.FieldLogger, cluster *common.Cluster) ([]byte, error) {
-	hostIp, err := GetIpForSingleNodeInstallation(cluster, log)
-	if err != nil {
-		return nil, err
-	}
-
-	var manifestParams = map[string]interface{}{
-		"CLUSTER_NAME": cluster.Cluster.Name,
-		"DNS_DOMAIN":   cluster.Cluster.BaseDNSDomain,
-		"HOST_IP":      hostIp,
-	}
-
-	log.Infof("Creating dnsmasq manifest with values: cluster name: %q, domain - %q, host ip - %q",
-		cluster.Cluster.Name, cluster.Cluster.BaseDNSDomain, hostIp)
-
-	content, err := fillTemplate(manifestParams, snoDnsmasqConf, log)
-	if err != nil {
-		return nil, err
-	}
-	dnsmasqContent := base64.StdEncoding.EncodeToString(content)
-
-	content, err = fillTemplate(manifestParams, forceDnsDispatcherScript, log)
-	if err != nil {
-		return nil, err
-	}
-	forceDnsDispatcherScriptContent := base64.StdEncoding.EncodeToString(content)
-
-	manifestParams = map[string]interface{}{
-		"DNSMASQ_CONTENT":       dnsmasqContent,
-		"FORCE_DNS_SCRIPT":      forceDnsDispatcherScriptContent,
-		"UNMANAGED_RESOLV_CONF": base64.StdEncoding.EncodeToString([]byte(unmanagedResolvConf)),
-	}
-
-	content, err = fillTemplate(manifestParams, dnsMachineConfigManifest, log)
-	if err != nil {
-		return nil, err
-	}
-
-	return content, nil
 }
 
 func fillTemplate(manifestParams map[string]interface{}, templateData string, log logrus.FieldLogger) ([]byte, error) {
