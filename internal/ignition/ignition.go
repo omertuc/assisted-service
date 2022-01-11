@@ -186,6 +186,7 @@ const discoveryIgnitionConfigFormat = `{
       },
       "contents": { "source": "data:,{{.AGENT_FIX_BZ1964591}}" }
     },
+	{{ .SINGLE_NODE_DAY2_WORKER_DNSMASQ_FILES }}
     {
       "overwrite": true,
       "path": "/etc/motd",
@@ -1323,6 +1324,10 @@ func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, err
 	return configBytes, nil
 }
 
+func (ib *ignitionBuilder) GetDay2WorkerDnsmasqConfiguration(ctx context.Context, infraEnv *common.InfraEnv) (string, error) {
+	// 192.168.122.195
+}
+
 func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error) {
 	pullSecretToken, err := clusterPkg.AgentToken(infraEnv, authType)
 	if err != nil {
@@ -1343,23 +1348,24 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		return "", err
 	}
 	var ignitionParams = map[string]interface{}{
-		"userSshKey":           userSshKey,
-		"AgentDockerImg":       cfg.AgentDockerImg,
-		"ServiceBaseURL":       strings.TrimSpace(cfg.ServiceBaseURL),
-		"infraEnvId":           infraEnv.ID.String(),
-		"PullSecretToken":      pullSecretToken,
-		"AGENT_MOTD":           url.PathEscape(agentMessageOfTheDay),
-		"AGENT_FIX_BZ1964591":  url.PathEscape(agentFixBZ1964591),
-		"IPv6_CONF":            url.PathEscape(common.Ipv6DuidDiscoveryConf),
-		"PULL_SECRET":          url.PathEscape(infraEnv.PullSecret),
-		"RH_ROOT_CA":           rhCa,
-		"PROXY_SETTINGS":       proxySettings,
-		"HTTPProxy":            httpProxy,
-		"HTTPSProxy":           httpsProxy,
-		"NoProxy":              noProxy,
-		"SkipCertVerification": strconv.FormatBool(cfg.SkipCertVerification),
-		"AgentTimeoutStartSec": strconv.FormatInt(int64(cfg.AgentTimeoutStart.Seconds()), 10),
-		"SELINUX_POLICY":       base64.StdEncoding.EncodeToString([]byte(selinuxPolicy)),
+		"userSshKey":                            userSshKey,
+		"AgentDockerImg":                        cfg.AgentDockerImg,
+		"ServiceBaseURL":                        strings.TrimSpace(cfg.ServiceBaseURL),
+		"infraEnvId":                            infraEnv.ID.String(),
+		"PullSecretToken":                       pullSecretToken,
+		"AGENT_MOTD":                            url.PathEscape(agentMessageOfTheDay),
+		"AGENT_FIX_BZ1964591":                   url.PathEscape(agentFixBZ1964591),
+		"IPv6_CONF":                             url.PathEscape(common.Ipv6DuidDiscoveryConf),
+		"PULL_SECRET":                           url.PathEscape(infraEnv.PullSecret),
+		"RH_ROOT_CA":                            rhCa,
+		"PROXY_SETTINGS":                        proxySettings,
+		"HTTPProxy":                             httpProxy,
+		"HTTPSProxy":                            httpsProxy,
+		"NoProxy":                               noProxy,
+		"SkipCertVerification":                  strconv.FormatBool(cfg.SkipCertVerification),
+		"AgentTimeoutStartSec":                  strconv.FormatInt(int64(cfg.AgentTimeoutStart.Seconds()), 10),
+		"SELINUX_POLICY":                        base64.StdEncoding.EncodeToString([]byte(selinuxPolicy)),
+		"SINGLE_NODE_DAY2_WORKER_DNSMASQ_FILES": network.GetDnsmasqIgnitionFilesJson(ib.log),
 	}
 	if safeForLogs {
 		for _, key := range []string{"userSshKey", "PullSecretToken", "PULL_SECRET", "RH_ROOT_CA"} {
