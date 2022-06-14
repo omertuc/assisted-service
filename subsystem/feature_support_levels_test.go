@@ -13,7 +13,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	It("Should return the feature list", func() {
 		response, err := userBMClient.Installer.V2ListFeatureSupportLevels(context.Background(), installer.NewV2ListFeatureSupportLevelsParams())
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(response.Payload).To(BeEquivalentTo(featuresupport.SupportLevelsList))
+		Expect(response.Payload).To(BeEquivalentTo(featuresupport.SupportLevelsListVerbose))
 	})
 	It("Should respond with an error for unauth user", func() {
 		_, err := unallowedUserBMClient.Installer.V2ListFeatureSupportLevels(context.Background(), installer.NewV2ListFeatureSupportLevelsParams())

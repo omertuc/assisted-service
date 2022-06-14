@@ -413,7 +413,7 @@ func (b *bareMetalInventory) V2GetCredentials(ctx context.Context, params instal
 }
 
 func (b *bareMetalInventory) V2ListFeatureSupportLevels(ctx context.Context, params installer.V2ListFeatureSupportLevelsParams) middleware.Responder {
-	payload := featuresupport.SupportLevelsList
+	payload := featuresupport.SupportLevelsListVerbose
 	return installer.NewV2ListFeatureSupportLevelsOK().WithPayload(payload)
 }
 
