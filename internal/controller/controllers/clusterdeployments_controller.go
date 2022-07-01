@@ -185,11 +185,8 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		if !isInstalled(clusterDeployment, clusterInstall) {
 			return r.createNewCluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
 		}
-		if !r.isSNO(clusterInstall) {
-			return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
-		}
-		// cluster is installed and SNO nothing to do.
-		return ctrl.Result{Requeue: false}, nil
+
+		return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
 	}
 	if err != nil {
 		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
@@ -1081,11 +1078,6 @@ func (r *ClusterDeploymentsReconciler) addCustomManifests(ctx context.Context, l
 	}
 
 	return r.syncManifests(ctx, log, cluster, clusterInstall, alreadyCreatedManifests)
-}
-
-func (r *ClusterDeploymentsReconciler) isSNO(clusterInstall *hiveext.AgentClusterInstall) bool {
-	return clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents == 1 &&
-		clusterInstall.Spec.ProvisionRequirements.WorkerAgents == 0
 }
 
 func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall,

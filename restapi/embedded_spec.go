@@ -5433,6 +5433,11 @@ func init() {
         "image_info": {
           "$ref": "#/definitions/image_info"
         },
+        "imported": {
+          "description": "Indicates whether this cluster is an imported day-2 cluster or a\nregular cluster. Clusters are considered imported when they are\ncreated via the ../clusters/import endpoint. Day-2 clusters converted\nfrom day-1 clusters by kube-api controllers or the\n../clusters/\u003ccluster_id\u003e/actions/allow-add-workers endpoint are not\nconsidered imported. Imported clusters usually lack a lot of\ninformation and are filled with default values that don't necessarily\nreflect the actual cluster they represent",
+          "type": "boolean",
+          "default": false
+        },
         "ingress_vip": {
           "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
@@ -14832,6 +14837,11 @@ func init() {
         },
         "image_info": {
           "$ref": "#/definitions/image_info"
+        },
+        "imported": {
+          "description": "Indicates whether this cluster is an imported day-2 cluster or a\nregular cluster. Clusters are considered imported when they are\ncreated via the ../clusters/import endpoint. Day-2 clusters converted\nfrom day-1 clusters by kube-api controllers or the\n../clusters/\u003ccluster_id\u003e/actions/allow-add-workers endpoint are not\nconsidered imported. Imported clusters usually lack a lot of\ninformation and are filled with default values that don't necessarily\nreflect the actual cluster they represent",
+          "type": "boolean",
+          "default": false
         },
         "ingress_vip": {
           "description": "The virtual IP used for cluster ingress traffic.",

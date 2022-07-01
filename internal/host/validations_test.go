@@ -172,7 +172,7 @@ var _ = Describe("Validations test", func() {
 			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, ignitionDownloadableID)
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationPending))
-			Expect(validationMessage).To(Equal("Ignition is not ready, pending API VIP connectivity."))
+			Expect(validationMessage).To(Equal("Ignition is not yet available, pending API connectivity"))
 		})
 		It("day2 host with valid API VIP Connectivity - successful validation", func() {
 			createDay2Cluster()
@@ -211,7 +211,7 @@ var _ = Describe("Validations test", func() {
 			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, ignitionDownloadableID)
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationFailure))
-			Expect(validationMessage).To(Equal("Ignition is not downloadable. Please ensure host connectivity to the cluster's API VIP."))
+			Expect(validationMessage).To(Equal("Ignition is not downloadable. Please ensure host connectivity to the cluster's API"))
 		})
 	})
 

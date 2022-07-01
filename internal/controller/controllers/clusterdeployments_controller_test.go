@@ -522,6 +522,8 @@ var _ = Describe("cluster reconcile", func() {
 				cluster.Spec.Installed = true
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
+				mockInstallerInternal.EXPECT().V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+
 				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName), cluster)
 				aci.Spec.ImageSetRef = nil
 				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
