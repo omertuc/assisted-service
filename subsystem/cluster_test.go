@@ -1543,7 +1543,7 @@ var _ = Describe("cluster install", func() {
 					requestStr := step.Args[len(step.Args)-1]
 					var ntpRequest models.NtpSynchronizationRequest
 
-					generateDomainNameResolutionReply(ctx, hosts[0], *common.TestDomainNameResolutionSuccess)
+					generateDomainNameResolutionReply(ctx, hosts[0], *common.TestDomainNameResolutionsSuccess)
 
 					Expect(json.Unmarshal([]byte(requestStr), &ntpRequest)).ShouldNot(HaveOccurred())
 					Expect(*ntpRequest.NtpSource).Should(Equal(newSource))
@@ -1561,7 +1561,7 @@ var _ = Describe("cluster install", func() {
 					generateNTPPostStepReply(ctx, hosts[0], []*models.NtpSource{
 						{SourceName: common.TestNTPSourceSynced.SourceName, SourceState: models.SourceStateUnreachable},
 					})
-					generateDomainNameResolutionReply(ctx, hosts[0], *common.TestDomainNameResolutionSuccess)
+					generateDomainNameResolutionReply(ctx, hosts[0], *common.TestDomainNameResolutionsSuccess)
 					waitForHostState(ctx, models.HostStatusInsufficient, defaultWaitForHostStateTimeout, hosts[0])
 				})
 
@@ -1581,7 +1581,7 @@ var _ = Describe("cluster install", func() {
 						{SourceName: newSource, SourceState: models.SourceStateSynced},
 					})
 				})
-				generateDomainNameResolutionReply(ctx, hosts[0], *common.TestDomainNameResolutionSuccess)
+				generateDomainNameResolutionReply(ctx, hosts[0], *common.TestDomainNameResolutionsSuccess)
 
 				waitForHostState(ctx, models.HostStatusKnown, defaultWaitForHostStateTimeout, hosts[0])
 			})

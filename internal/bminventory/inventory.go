@@ -725,7 +725,6 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 		kubeKey = &types.NamespacedName{}
 	}
 
-	imported := true
 	baseDomain := ""
 	if importedBaseDomain, importedClusterName := importedClusterBaseDomain(apiHostname); importedBaseDomain != "" {
 		baseDomain = importedBaseDomain
@@ -754,7 +753,7 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 		HostNetworks:       []*models.HostNetwork{},
 		Hosts:              []*models.Host{},
 		Platform:           &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
-		Imported:           &imported,
+		Imported:           swag.Bool(true),
 	},
 		KubeKeyName:      kubeKey.Name,
 		KubeKeyNamespace: kubeKey.Namespace,

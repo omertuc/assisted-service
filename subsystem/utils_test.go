@@ -436,7 +436,7 @@ func generateEssentialHostStepsWithInventory(ctx context.Context, h *models.Host
 	generateHWPostStepReply(ctx, h, inventory, name)
 	generateFAPostStepReply(ctx, h, validFreeAddresses)
 	generateNTPPostStepReply(ctx, h, []*models.NtpSource{common.TestNTPSourceSynced})
-	generateDomainNameResolutionReply(ctx, h, *common.TestDomainNameResolutionSuccess)
+	generateDomainNameResolutionReply(ctx, h, *common.TestDomainNameResolutionsSuccess)
 }
 
 func generateDomainResolution(ctx context.Context, h *models.Host, name string, baseDomain string) {
@@ -449,12 +449,12 @@ func generateCommonDomainReply(ctx context.Context, h *models.Host, clusterName,
 	}
 	var domainResolutions = []*models.DomainResolutionResponseDomain{
 		{
-			DomainName:    fqdn(constants.APIName, clusterName, baseDomain),
+			DomainName:    fqdn(constants.APIClusterSubdomain, clusterName, baseDomain),
 			IPV4Addresses: []strfmt.IPv4{"1.2.3.4/24"},
 			IPV6Addresses: []strfmt.IPv6{"1001:db8::10/120"},
 		},
 		{
-			DomainName:    fqdn(constants.APIInternalName, clusterName, baseDomain),
+			DomainName:    fqdn(constants.InternalAPIClusterSubdomain, clusterName, baseDomain),
 			IPV4Addresses: []strfmt.IPv4{"4.5.6.7/24"},
 			IPV6Addresses: []strfmt.IPv6{"1002:db8::10/120"},
 		},

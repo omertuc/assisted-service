@@ -443,7 +443,7 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) Va
 		if err != nil {
 			return ValidationPending
 		}
-		if luks == nil {
+		if luks == nil || luks.Clevis == nil {
 			// Disk encryption is disabled for workers on day1 cluster
 			return ValidationSuccessSuppressOutput
 		}
@@ -1425,13 +1425,13 @@ func (v *validator) isAPIDomainNameResolvedCorrectly(c *validationContext) Valid
 	if shouldValidate, ret := v.shouldValidateDNSResolution(c.cluster); !shouldValidate {
 		return ret
 	}
-	apiDomainName := domainNameToResolve(c, constants.APIName)
+	apiDomainName := domainNameToResolve(c, constants.APIClusterSubdomain)
 	return checkDomainNameResolution(c, apiDomainName)
 }
 
 func (v *validator) printIsAPIDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus) string {
-	apiDomainName := domainNameToResolve(c, constants.APIName)
-	return printIsDomainNameResolvedCorrectly(c, status, apiDomainName, "API load balancer")
+	apiDomainName := domainNameToResolve(c, constants.APIClusterSubdomain)
+	return printIsDomainNameResolvedCorrectly(c, status, apiDomainName, "API")
 }
 
 func (v *validator) isAPIInternalDomainNameResolvedCorrectly(c *validationContext) ValidationStatus {
@@ -1441,13 +1441,13 @@ func (v *validator) isAPIInternalDomainNameResolvedCorrectly(c *validationContex
 	if shouldValidate, ret := v.shouldValidateDNSResolution(c.cluster); !shouldValidate {
 		return ret
 	}
-	apiInternalDomainName := domainNameToResolve(c, constants.APIInternalName)
+	apiInternalDomainName := domainNameToResolve(c, constants.InternalAPIClusterSubdomain)
 	return checkDomainNameResolution(c, apiInternalDomainName)
 }
 
 func (v *validator) printIsAPIInternalDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus) string {
-	apiInternalDomainName := domainNameToResolve(c, constants.APIInternalName)
-	return printIsDomainNameResolvedCorrectly(c, status, apiInternalDomainName, "internal API load balancer")
+	apiInternalDomainName := domainNameToResolve(c, constants.InternalAPIClusterSubdomain)
+	return printIsDomainNameResolvedCorrectly(c, status, apiInternalDomainName, "internal API")
 }
 
 func (v *validator) isAppsDomainNameResolvedCorrectly(c *validationContext) ValidationStatus {
@@ -1463,7 +1463,7 @@ func (v *validator) isAppsDomainNameResolvedCorrectly(c *validationContext) Vali
 
 func (v *validator) printIsAppsDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus) string {
 	appsDomainName := domainNameToResolve(c, "*.apps")
-	return printIsDomainNameResolvedCorrectly(c, status, appsDomainName, "application Ingress load balancer")
+	return printIsDomainNameResolvedCorrectly(c, status, appsDomainName, "application ingress")
 }
 
 func getFirstMatchingResolution(c *validationContext, domainName string) (*models.DomainResolutionResponseDomain, error) {
@@ -1511,36 +1511,40 @@ func checkDomainNameResolution(c *validationContext, domainName string) Validati
 	return ValidationFailure
 }
 
+func printIsDomainNameResolvedCorrectlyFailure(c *validationContext, status ValidationStatus, domainName string, destination string) string {
+	domainResolution, err := getFirstMatchingResolution(c, domainName)
+	if err != nil {
+		return fmt.Sprintf("There was a problem while attempting to resolve the domain name %s. Error: %s", domainName, err)
+	}
+
+	if domainResolution != nil {
+		ip, resolved := domainResolvesToInventoryIP(domainResolution, c.inventory)
+		if resolved {
+			return fmt.Sprintf("Domain %s must not point at %s as it is the API address of this host. This domain must instead point at the IP address of a load balancer when using user managed networking in a multi control-plane node cluster", domainName, ip)
+		}
+	}
+
+	return fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your cluster's %s IP address", domainName, destination)
+}
+
+func printIsDomainNameResolvedCorrectlyError(c *validationContext, status ValidationStatus, domainName string, destination string) string {
+	if c.cluster.BaseDNSDomain == "" {
+		return fmt.Sprintf("DNS validation for %s cannot be completed because the cluster does not have base_dns_domain set. Please update the cluster with the correct base_dns_domain", domainName)
+	}
+
+	return "Error while evaluating DNS resolution on this host"
+}
+
 func printIsDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus, domainName string, destination string) string {
 	switch status {
 	case ValidationSuccess:
-		if !swag.BoolValue(c.cluster.UserManagedNetworking) {
-			return "Domain name resolution is not required (managed networking)"
-		}
-		return fmt.Sprintf("Domain name resolution was successful for domain %s", domainName)
+		return fmt.Sprintf("Domain name resolution for %s domain was successful or not required", domainName)
 	case ValidationFailure:
-		domain, err := getFirstMatchingResolution(c, domainName)
-		if err != nil {
-			return fmt.Sprintf("There was a problem while attempting to resolve the domain name %s Error: %s", domainName, err)
-
-		}
-		if domain != nil {
-			ip, resolved := domainResolvesToInventoryIP(domain, c.inventory)
-			if resolved {
-				return fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer when using user managed networking in a multiple control plane cluster.", *domain.DomainName, ip)
-			}
-		}
-		return fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your %s.", domainName, destination)
+		return printIsDomainNameResolvedCorrectlyFailure(c, status, domainName, destination)
 	case ValidationError:
-		if c.cluster.BaseDNSDomain == "" {
-			return "DNS validation cannot be completed because cluster does not have base_dns_domain set. Please update the cluster with the correct base_dns_domain"
-		}
-		return "Parse error for domain name resolutions result"
+		return printIsDomainNameResolvedCorrectlyError(c, status, domainName, destination)
 	case ValidationPending:
-		if c.cluster.BaseDNSDomain == "" {
-			return "DNS validation cannot be completed at the moment. See ignition downloadable validation"
-		}
-		return "Parse error for domain name resolutions result"
+		return fmt.Sprintf("DNS validation for %s domain cannot be completed at the moment. This could be due to other validations", domainName)
 	default:
 		return "Unexpected status"
 	}
