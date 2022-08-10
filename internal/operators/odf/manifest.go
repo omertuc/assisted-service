@@ -89,7 +89,7 @@ metadata:
   namespace: "{{.OPERATOR_NAMESPACE}}"
 spec:
   channel: stable-4.8
-  installPlanApproval: Automatic
+  installPlanApproval: Manual
   name: ocs-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace`
@@ -118,7 +118,7 @@ metadata:
   name: "{{.OPERATOR_SUBSCRIPTION_NAME}}"
   namespace: "{{.OPERATOR_NAMESPACE}}"
 spec:
-  installPlanApproval: Automatic
+  installPlanApproval: Manual
   name: odf-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace`
