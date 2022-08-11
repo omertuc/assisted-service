@@ -135,12 +135,19 @@ spec:
           contents: |
             [Unit]
             Description=Run dnsmasq to provide local dns for Single Node OpenShift
-            Before=kubelet.service crio.service
-            After=network.target
 
             [Service]
             ExecStart=/usr/sbin/dnsmasq -k
-
+        - name: dnsmasq.path
+          contents: |
+            [Unit]
+            Description="Wait for the dnsmasq conf file"
+            Before=kubelet.service crio.service
+            After=network.target
+            
+            [Path]
+            PathExists=/etc/dnsmasq.d/single-node.conf
+            
             [Install]
             WantedBy=multi-user.target
 `
