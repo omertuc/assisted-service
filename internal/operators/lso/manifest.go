@@ -17,7 +17,7 @@ metadata:
   name: "{{.OPERATOR_SUBSCRIPTION_NAME}}"
   namespace: "{{.OPERATOR_NAMESPACE}}"
 spec:
-  installPlanApproval: Automatic
+  installPlanApproval: Manual
   name: local-storage-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace`

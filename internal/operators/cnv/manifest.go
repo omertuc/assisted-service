@@ -163,7 +163,7 @@ spec:
   sourceNamespace: openshift-marketplace
   name: "{{.OPERATOR_SOURCE_NAME}}"
   channel: stable
-  installPlanApproval: "Automatic"`
+  installPlanApproval: "Manual"`
 
 const cnvNamespace = `apiVersion: v1
 kind: Namespace
