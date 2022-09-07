@@ -51,8 +51,8 @@ type Handler interface {
 func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
 	versions Versions, osImages models.OsImages, releaseImages models.ReleaseImages,
 	mustGatherVersions MustGatherVersions,
-	releaseImageMirror string, authzHandler auth.Authorizer) (*handler, error) {
-	h := &handler{
+	releaseImageMirror string, authzHandler auth.Authorizer) (*versionsHandler, error) {
+	h := &versionsHandler{
 		versions:           versions,
 		mustGatherVersions: mustGatherVersions,
 		osImages:           osImages,
@@ -70,9 +70,9 @@ func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
 	return h, nil
 }
 
-var _ restapi.VersionsAPI = (*handler)(nil)
+var _ restapi.VersionsAPI = (*versionsHandler)(nil)
 
-type handler struct {
+type versionsHandler struct {
 	versions           Versions
 	mustGatherVersions MustGatherVersions
 	osImages           models.OsImages
@@ -83,7 +83,7 @@ type handler struct {
 	authzHandler       auth.Authorizer
 }
 
-func (h *handler) V2ListComponentVersions(ctx context.Context, params operations.V2ListComponentVersionsParams) middleware.Responder {
+func (h *versionsHandler) V2ListComponentVersions(ctx context.Context, params operations.V2ListComponentVersionsParams) middleware.Responder {
 	return operations.NewV2ListComponentVersionsOK().WithPayload(
 		&models.ListVersions{
 			Versions: models.Versions{
@@ -96,7 +96,7 @@ func (h *handler) V2ListComponentVersions(ctx context.Context, params operations
 		})
 }
 
-func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params operations.V2ListSupportedOpenshiftVersionsParams) middleware.Responder {
+func (h *versionsHandler) V2ListSupportedOpenshiftVersions(ctx context.Context, params operations.V2ListSupportedOpenshiftVersionsParams) middleware.Responder {
 	openshiftVersions := models.OpenshiftVersions{}
 	hasMultiarchAuthorization := false
 	checkedForMultiarchAuthorization := false
@@ -177,7 +177,7 @@ func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params o
 	return operations.NewV2ListSupportedOpenshiftVersionsOK().WithPayload(openshiftVersions)
 }
 
-func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error) {
+func (h *versionsHandler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error) {
 	versionKey, err := h.getKey(openshiftVersion)
 	if err != nil {
 		return nil, err
@@ -210,7 +210,7 @@ func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSec
 }
 
 // Returns the default ReleaseImage entity for a specified CPU architecture
-func (h *handler) GetDefaultReleaseImage(cpuArchitecture string) (*models.ReleaseImage, error) {
+func (h *versionsHandler) GetDefaultReleaseImage(cpuArchitecture string) (*models.ReleaseImage, error) {
 	defaultReleaseImage := funk.Find(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
 		return releaseImage.Default && *releaseImage.CPUArchitecture == cpuArchitecture
 	})
@@ -223,7 +223,7 @@ func (h *handler) GetDefaultReleaseImage(cpuArchitecture string) (*models.Releas
 }
 
 // Returns the OsImage entity
-func (h *handler) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error) {
+func (h *versionsHandler) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error) {
 	if cpuArchitecture == "" {
 		// Empty implies default CPU architecture
 		cpuArchitecture = common.DefaultCPUArchitecture
@@ -285,7 +285,7 @@ func (h *handler) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.
 }
 
 // Returns the ReleaseImage entity
-func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error) {
+func (h *versionsHandler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error) {
 	if cpuArchitecture == "" {
 		// Empty implies default CPU architecture
 		cpuArchitecture = common.DefaultCPUArchitecture
@@ -328,7 +328,7 @@ func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*mo
 }
 
 // Returns the latest OSImage entity for a specified CPU architecture
-func (h *handler) GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error) {
+func (h *versionsHandler) GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error) {
 	var latest *models.OsImage
 	openshiftVersions := h.GetOpenshiftVersions()
 	for _, k := range openshiftVersions {
@@ -352,7 +352,7 @@ func (h *handler) GetLatestOsImage(cpuArchitecture string) (*models.OsImage, err
 	return latest, nil
 }
 
-func (h *handler) GetOsImageOrLatest(version string, cpuArch string) (*models.OsImage, error) {
+func (h *versionsHandler) GetOsImageOrLatest(version string, cpuArch string) (*models.OsImage, error) {
 	var osImage *models.OsImage
 	var err error
 	if version != "" {
@@ -369,7 +369,7 @@ func (h *handler) GetOsImageOrLatest(version string, cpuArch string) (*models.Os
 	return osImage, nil
 }
 
-func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error) {
+func (h *versionsHandler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error) {
 	var err error
 	var cpuArchitecture string
 	var osImage *models.OsImage
@@ -434,7 +434,7 @@ func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion
 
 // Get CPU architectures available for the specified openshift version
 // according to the OS images list.
-func (h *handler) GetCPUArchitectures(openshiftVersion string) []string {
+func (h *versionsHandler) GetCPUArchitectures(openshiftVersion string) []string {
 	cpuArchitectures := []string{}
 	versionKey, err := h.getKey(openshiftVersion)
 	if err != nil {
@@ -456,7 +456,7 @@ func (h *handler) GetCPUArchitectures(openshiftVersion string) []string {
 }
 
 // Get available openshift versions according to OS images list.
-func (h *handler) GetOpenshiftVersions() []string {
+func (h *versionsHandler) GetOpenshiftVersions() []string {
 	versions := []string{}
 	for _, image := range h.osImages {
 		if !funk.Contains(versions, *image.OpenshiftVersion) {
@@ -466,7 +466,7 @@ func (h *handler) GetOpenshiftVersions() []string {
 	return versions
 }
 
-func (h *handler) ValidateAccessToMultiarch(ctx context.Context, authzHandler auth.Authorizer) error {
+func (h *versionsHandler) ValidateAccessToMultiarch(ctx context.Context, authzHandler auth.Authorizer) error {
 	var err error
 	var multiarchAllowed bool
 
@@ -481,7 +481,7 @@ func (h *handler) ValidateAccessToMultiarch(ctx context.Context, authzHandler au
 }
 
 // Returns version in major.minor format
-func (h *handler) getKey(openshiftVersion string) (string, error) {
+func (h *versionsHandler) getKey(openshiftVersion string) (string, error) {
 	v, err := version.NewVersion(openshiftVersion)
 	if err != nil {
 		return "", err
@@ -489,7 +489,7 @@ func (h *handler) getKey(openshiftVersion string) (string, error) {
 	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
 }
 
-func (h *handler) getSupportLevel(releaseImage models.ReleaseImage) *string {
+func (h *versionsHandler) getSupportLevel(releaseImage models.ReleaseImage) *string {
 	if releaseImage.SupportLevel != "" {
 		return &releaseImage.SupportLevel
 	}
@@ -504,7 +504,7 @@ func (h *handler) getSupportLevel(releaseImage models.ReleaseImage) *string {
 }
 
 // Ensure no missing values in OS images and Release images.
-func (h *handler) validateVersions() error {
+func (h *versionsHandler) validateVersions() error {
 	for _, osImage := range h.osImages {
 		if swag.StringValue(osImage.OpenshiftVersion) == "" {
 			return errors.Errorf("Missing openshift_version in OsImage: %v", osImage)

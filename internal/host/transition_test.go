@@ -15,7 +15,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
@@ -90,28 +90,27 @@ func createValidatorCfg() *hardware.ValidatorCfg {
 var _ = Describe("RegisterHost", func() {
 	var (
 		ctx                           = context.Background()
-		hapi                          API
+		hostAPI                       API
 		db                            *gorm.DB
 		ctrl                          *gomock.Controller
 		mockEvents                    *eventsapi.MockHandler
 		hostId, clusterId, infraEnvId strfmt.UUID
-		dbName                        string
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil)
+		hostAPI = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
 	})
 
 	It("register_new", func() {
-		Expect(hapi.RegisterHost(ctx, &models.Host{ID: &hostId, ClusterID: &clusterId, InfraEnvID: infraEnvId, DiscoveryAgentVersion: "v1.0.1"}, db)).ShouldNot(HaveOccurred())
+		Expect(hostAPI.RegisterHost(ctx, &models.Host{ID: &hostId, ClusterID: &clusterId, InfraEnvID: infraEnvId, DiscoveryAgentVersion: "v1.0.1"}, db)).ShouldNot(HaveOccurred())
 		h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
 		Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusDiscovering))
 		Expect(h.DiscoveryAgentVersion).To(Equal("v1.0.1"))
@@ -177,7 +176,7 @@ var _ = Describe("RegisterHost", func() {
 						eventstest.WithSeverityMatcher(t.expectedEventStatus)))
 				}
 
-				err := hapi.RegisterHost(ctx, &models.Host{
+				err := hostAPI.RegisterHost(ctx, &models.Host{
 					ID:         &hostId,
 					ClusterID:  &clusterId,
 					InfraEnvID: infraEnvId,
@@ -216,7 +215,7 @@ var _ = Describe("RegisterHost", func() {
 			Status:     swag.String(models.HostStatusError),
 		}).Error).ShouldNot(HaveOccurred())
 
-		Expect(hapi.RegisterHost(ctx, &models.Host{
+		Expect(hostAPI.RegisterHost(ctx, &models.Host{
 			ID:                    &hostId,
 			InfraEnvID:            infraEnvId,
 			ClusterID:             &clusterId,
@@ -309,7 +308,7 @@ var _ = Describe("RegisterHost", func() {
 						eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 				}
 
-				Expect(hapi.RegisterHost(ctx, &models.Host{
+				Expect(hostAPI.RegisterHost(ctx, &models.Host{
 					ID:                    &hostId,
 					InfraEnvID:            infraEnvId,
 					ClusterID:             &clusterId,
@@ -349,7 +348,7 @@ var _ = Describe("RegisterHost", func() {
 					Status:     swag.String(t.srcState),
 				}).Error).ShouldNot(HaveOccurred())
 
-				Expect(hapi.RegisterHost(ctx, &models.Host{
+				Expect(hostAPI.RegisterHost(ctx, &models.Host{
 					ID:         &hostId,
 					InfraEnvID: infraEnvId,
 					ClusterID:  &clusterId,
@@ -451,7 +450,7 @@ var _ = Describe("RegisterHost", func() {
 					Inventory:            common.GenerateTestDefaultInventory(),
 					Status:               swag.String(t.srcState),
 					Progress:             &t.progress,
-					InstallationDiskPath: common.TestDiskId,
+					InstallationDiskPath: common.TestDiskID,
 					Kind:                 &t.hostKind,
 				}).Error).ShouldNot(HaveOccurred())
 
@@ -464,7 +463,7 @@ var _ = Describe("RegisterHost", func() {
 						eventstest.WithSeverityMatcher(t.eventSeverity)))
 				}
 
-				Expect(hapi.RegisterHost(ctx, &models.Host{
+				Expect(hostAPI.RegisterHost(ctx, &models.Host{
 					ID:         &hostId,
 					InfraEnvID: infraEnvId,
 					ClusterID:  &clusterId,
@@ -575,7 +574,7 @@ var _ = Describe("RegisterHost", func() {
 						eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(t.dstState))))
 				}
 
-				Expect(hapi.RegisterHost(ctx, &models.Host{
+				Expect(hostAPI.RegisterHost(ctx, &models.Host{
 					ID:         &hostId,
 					InfraEnvID: infraEnvId,
 					ClusterID:  nil,
@@ -587,66 +586,68 @@ var _ = Describe("RegisterHost", func() {
 		}
 
 	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
 })
 
 var _ = Describe("HostInstallationFailed", func() {
 	var (
 		ctx                           = context.Background()
-		hapi                          API
+		hostAPI                       API
 		db                            *gorm.DB
-		hostId, clusterId, infraEnvId strfmt.UUID
+		hostId, clusterID, infraEnvID strfmt.UUID
 		host                          models.Host
 		ctrl                          *gomock.Controller
 		mockMetric                    *metrics.MockAPI
 		mockEvents                    *eventsapi.MockHandler
-		dbName                        string
+		cluster                       common.Cluster
+		installationDisk              *models.Disk
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager, nil, false, nil)
+		hostAPI = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager, nil, false, nil)
 		hostId = strfmt.UUID(uuid.New().String())
-		clusterId = strfmt.UUID(uuid.New().String())
-		infraEnvId = strfmt.UUID(uuid.New().String())
-		host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, "")
+		clusterID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHost(hostId, infraEnvID, clusterID, "")
 		host.Status = swag.String(models.HostStatusInstalling)
+
+		cluster = hostutil.GenerateTestCluster(clusterID)
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+		var err error
+		installationDisk, err = hostutil.GetHostInstallationDisk(&host)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("handle_installation_error", func() {
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 			eventstest.WithHostIdMatcher(hostId.String()),
-			eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
-			eventstest.WithClusterIdMatcher(clusterId.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithClusterIdMatcher(clusterID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityError)))
-		mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
-		Expect(hapi.HandleInstallationFailure(ctx, &host)).ShouldNot(HaveOccurred())
-		h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
-		Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusError))
-		Expect(swag.StringValue(h.StatusInfo)).Should(Equal("installation command failed"))
-	})
+		mockMetric.EXPECT().ReportHostInstallationMetrics(ctx, cluster.OpenshiftVersion, clusterID, cluster.EmailDomain,
+			installationDisk, &host, gomock.Any(), gomock.Any())
 
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		Expect(hostAPI.HandleInstallationFailure(ctx, &host)).Should(Succeed())
+
+		host := hostutil.GetHostFromDB(hostId, infraEnvID, db)
+		Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusError))
+		Expect(swag.StringValue(host.StatusInfo)).Should(Equal("installation command failed"))
 	})
 })
 
 var _ = Describe("Cancel host installation", func() {
 	var (
 		ctx                           = context.Background()
-		dbName                        string
-		hapi                          API
+		hostAPI                       API
 		db                            *gorm.DB
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
@@ -655,12 +656,12 @@ var _ = Describe("Cancel host installation", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
-		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil)
+		hostAPI = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil)
 	})
 
 	tests := []struct {
@@ -705,7 +706,7 @@ var _ = Describe("Cancel host installation", func() {
 				eventsNum = 2
 			}
 			acceptNewEvents(eventsNum)
-			err := hapi.CancelInstallation(ctx, &host, "reason", db)
+			err := hostAPI.CancelInstallation(ctx, &host, "reason", db)
 			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
 			if t.success {
 				Expect(err).ShouldNot(HaveOccurred())
@@ -726,18 +727,12 @@ var _ = Describe("Cancel host installation", func() {
 			}
 		})
 	}
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("Reset host", func() {
 	var (
 		ctx                           = context.Background()
-		dbName                        string
-		hapi                          API
+		hostAPI                       API
 		db                            *gorm.DB
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
@@ -746,12 +741,12 @@ var _ = Describe("Reset host", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
-		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil)
+		hostAPI = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil)
 	})
 
 	tests := []struct {
@@ -796,7 +791,7 @@ var _ = Describe("Reset host", func() {
 				eventsNum = 2
 			}
 			acceptNewEvents(eventsNum)
-			err := hapi.ResetHost(ctx, &host, "reason", db)
+			err := hostAPI.ResetHost(ctx, &host, "reason", db)
 			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
 			if t.success {
 				Expect(err).ShouldNot(HaveOccurred())
@@ -817,17 +812,12 @@ var _ = Describe("Reset host", func() {
 			}
 		})
 	}
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("Install", func() {
 	var (
 		ctx                           = context.Background()
-		hapi                          API
+		hostAPI                       API
 		db                            *gorm.DB
 		ctrl                          *gomock.Controller
 		mockEvents                    *eventsapi.MockHandler
@@ -835,18 +825,18 @@ var _ = Describe("Install", func() {
 		host                          models.Host
 		cluster                       common.Cluster
 		mockHwValidator               *hardware.MockValidator
-		dbName                        string
+		providerRegistry              *registry.MockProviderRegistry
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
-		pr := registry.NewMockProviderRegistry(ctrl)
-		pr.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil)
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, pr, false, nil)
+		providerRegistry = registry.NewMockProviderRegistry(ctrl)
+		providerRegistry.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+		hostAPI = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, providerRegistry, false, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -919,20 +909,12 @@ var _ = Describe("Install", func() {
 			},
 		}
 
-		for i := range tests {
-			t := tests[i]
-			It(t.name, func() {
-				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, t.srcState)
+		for _, test := range tests {
+			test := test
+			It(test.name, func() {
+				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, test.srcState)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
-					eventstest.WithHostIdMatcher(hostId.String()),
-					eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
-					eventstest.WithClusterIdMatcher(clusterId.String()),
-					eventstest.WithMessageMatcher(fmt.Sprintf("Host %s: updated status from \"%s\" to \"installing\" (Installation is in progress)",
-						host.ID.String(), t.srcState)),
-					eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
-				t.validation(hapi.Install(ctx, &host, nil))
+				test.validation(hostAPI.Install(ctx, &host, nil))
 			})
 		}
 	})
@@ -968,7 +950,7 @@ var _ = Describe("Install", func() {
 				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
 				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 			))
-			Expect(hapi.RefreshStatus(ctx, &host, tx)).ShouldNot(HaveOccurred())
+			Expect(hostAPI.RefreshStatus(ctx, &host, tx)).ShouldNot(HaveOccurred())
 			Expect(tx.Commit().Error).ShouldNot(HaveOccurred())
 			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
 			Expect(*h.Status).Should(Equal(models.HostStatusInstalling))
@@ -984,38 +966,33 @@ var _ = Describe("Install", func() {
 				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
 				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 				eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
-			Expect(hapi.RefreshStatus(ctx, &host, tx)).ShouldNot(HaveOccurred())
+			Expect(hostAPI.RefreshStatus(ctx, &host, tx)).ShouldNot(HaveOccurred())
 			Expect(tx.Rollback().Error).ShouldNot(HaveOccurred())
 			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
 			Expect(*h.Status).Should(Equal(models.HostStatusPreparingSuccessful))
 			Expect(*h.StatusInfo).Should(Equal(statusInfoHostPreparationSuccessful))
 		})
 	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("Unbind", func() {
 	var (
 		ctx                           = context.Background()
-		hapi                          API
+		hostAPI                       API
 		db                            *gorm.DB
 		ctrl                          *gomock.Controller
 		mockEvents                    *eventsapi.MockHandler
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
-		dbName                        string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil)
+		hostAPI = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -1266,13 +1243,9 @@ var _ = Describe("Unbind", func() {
 				validation = failure
 				validationState = t.srcState
 			}
-			validation(hapi.UnbindHost(ctx, &host, db, t.reclaim), validationState)
+			validation(hostAPI.UnbindHost(ctx, &host, db, t.reclaim), validationState)
 		})
 	}
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 type statusInfoChecker interface {
@@ -1368,14 +1341,13 @@ var _ = Describe("Refresh Host", func() {
 	var (
 		supportedGPU                  = models.Gpu{VendorID: "10de", DeviceID: "1db6"}
 		ctx                           = context.Background()
-		hapi                          API
+		hostAPI                       API
 		db                            *gorm.DB
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
 		cluster                       common.Cluster
 		mockEvents                    *eventsapi.MockHandler
 		ctrl                          *gomock.Controller
-		dbName                        string
 		mockHwValidator               *hardware.MockValidator
 		validatorCfg                  *hardware.ValidatorCfg
 		operatorsManager              *operators.Manager
@@ -1383,7 +1355,7 @@ var _ = Describe("Refresh Host", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
@@ -1405,7 +1377,7 @@ var _ = Describe("Refresh Host", func() {
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
 		pr = registry.NewMockProviderRegistry(ctrl)
 		pr.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil)
+		hostAPI = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -1463,7 +1435,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 						eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(models.HostStatusError))))
 				}
-				err := hapi.RefreshStatus(ctx, &host, db)
+				err := hostAPI.RefreshStatus(ctx, &host, db)
 				Expect(err).ShouldNot(HaveOccurred())
 				var resultHost models.Host
 				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
@@ -1537,7 +1509,7 @@ var _ = Describe("Refresh Host", func() {
 				updateClusterPlatform(models.PlatformTypeVsphere)
 
 				mockStatus()
-				err := hapi.RefreshStatus(ctx, &host, db)
+				err := hostAPI.RefreshStatus(ctx, &host, db)
 				Expect(err).ToNot(HaveOccurred())
 				host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 				Expect(*host.Status).To(BeEquivalentTo(models.HostStatusInsufficient))
@@ -1547,7 +1519,7 @@ var _ = Describe("Refresh Host", func() {
 				updateClusterPlatform(models.PlatformTypeBaremetal)
 				err = db.First(&cluster, "id = ?", clusterId).Error
 				Expect(err).ShouldNot(HaveOccurred())
-				err = hapi.RefreshStatus(ctx, &host, db)
+				err = hostAPI.RefreshStatus(ctx, &host, db)
 				Expect(err).ToNot(HaveOccurred())
 				host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 				Expect(*host.Status).To(BeEquivalentTo(models.HostStatusKnown))
@@ -1561,7 +1533,7 @@ var _ = Describe("Refresh Host", func() {
 				err := db.First(&cluster, "id = ?", clusterId).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				mockStatus()
-				err = hapi.RefreshStatus(ctx, &host, db)
+				err = hostAPI.RefreshStatus(ctx, &host, db)
 				Expect(err).ToNot(HaveOccurred())
 				host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 				Expect(*host.Status).To(BeEquivalentTo(models.HostStatusInsufficient))
@@ -1573,7 +1545,7 @@ var _ = Describe("Refresh Host", func() {
 				Expect(common.DeleteRecordsByClusterID(db, *cluster.ID, []interface{}{&models.MachineNetwork{}})).ShouldNot(HaveOccurred())
 				err = db.First(&cluster, "id = ?", clusterId).Error
 				Expect(err).ShouldNot(HaveOccurred())
-				err = hapi.RefreshStatus(ctx, &host, db)
+				err = hostAPI.RefreshStatus(ctx, &host, db)
 				Expect(err).ToNot(HaveOccurred())
 				host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 				Expect(*host.Status).To(BeEquivalentTo(models.HostStatusPendingForInput))
@@ -1626,7 +1598,7 @@ var _ = Describe("Refresh Host", func() {
 					eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
 					eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 					eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(models.HostStatusError))))
-				err := hapi.RefreshStatus(ctx, &host, db)
+				err := hostAPI.RefreshStatus(ctx, &host, db)
 
 				Expect(err).ToNot(HaveOccurred())
 				var resultHost models.Host
@@ -1668,7 +1640,7 @@ var _ = Describe("Refresh Host", func() {
 				cluster = hostutil.GenerateTestCluster(clusterId)
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
-				err := hapi.RefreshStatus(ctx, &host, db)
+				err := hostAPI.RefreshStatus(ctx, &host, db)
 
 				Expect(err).ToNot(HaveOccurred())
 				var resultHost models.Host
@@ -1718,7 +1690,7 @@ var _ = Describe("Refresh Host", func() {
 				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
 				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 				eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(models.HostStatusDisconnected))))
-			err := hapi.RefreshStatus(ctx, &host, db)
+			err := hostAPI.RefreshStatus(ctx, &host, db)
 
 			Expect(err).ToNot(HaveOccurred())
 			var resultHost models.Host
@@ -1824,7 +1796,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 						eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(models.HostStatusError))))
 				}
-				err := hapi.RefreshStatus(ctx, &host, db)
+				err := hostAPI.RefreshStatus(ctx, &host, db)
 
 				Expect(err).ToNot(HaveOccurred())
 				var resultHost models.Host
@@ -1876,7 +1848,7 @@ var _ = Describe("Refresh Host", func() {
 						srcState = models.HostStatusInstallingInProgress
 						host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, srcState)
 						host.Inventory = hostutil.GenerateMasterInventory()
-						host.InstallationDiskPath = common.TestDiskId
+						host.InstallationDiskPath = common.TestDiskID
 						host.Role = models.HostRoleMaster
 						host.CheckedInAt = hostCheckInAt
 						progress := models.HostProgressInfo{
@@ -1907,7 +1879,7 @@ var _ = Describe("Refresh Host", func() {
 									eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(models.HostStatusError))))
 							}
 						}
-						err := hapi.RefreshStatus(ctx, &host, db)
+						err := hostAPI.RefreshStatus(ctx, &host, db)
 
 						Expect(err).ToNot(HaveOccurred())
 						var resultHost models.Host
@@ -1918,7 +1890,7 @@ var _ = Describe("Refresh Host", func() {
 						} else {
 							if stage == models.HostStageRebooting {
 								Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingPendingUserAction))
-								statusInfo := strings.Replace(statusRebootTimeout, "$INSTALLATION_DISK", fmt.Sprintf("(test-disk, %s)", common.TestDiskId), 1)
+								statusInfo := strings.Replace(statusRebootTimeout, "$INSTALLATION_DISK", fmt.Sprintf("(test-disk, %s)", common.TestDiskID), 1)
 								Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(statusInfo))
 							} else {
 								Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
@@ -1963,10 +1935,10 @@ var _ = Describe("Refresh Host", func() {
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(models.HostStatusError)))).AnyTimes()
 
-			err := hapi.RefreshStatus(ctx, &master, db)
+			err := hostAPI.RefreshStatus(ctx, &master, db)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = hapi.RefreshStatus(ctx, &host, db)
+			err = hostAPI.RefreshStatus(ctx, &host, db)
 			Expect(err).ToNot(HaveOccurred())
 
 			var resultMaster models.Host
@@ -2215,7 +2187,7 @@ var _ = Describe("Refresh Host", func() {
 				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 					eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()))).AnyTimes()
 
-				err := hapi.RefreshStatus(ctx, &host, db)
+				err := hostAPI.RefreshStatus(ctx, &host, db)
 				Expect(err).ToNot(HaveOccurred())
 
 				var resultHost models.Host
@@ -2450,7 +2422,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(t.dstState))))
 				}
 				Expect(getHost(infraEnvId, hostId).ValidationsInfo).To(BeEmpty())
-				err := hapi.RefreshStatus(ctx, &host, db)
+				err := hostAPI.RefreshStatus(ctx, &host, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
 				} else {
@@ -2533,7 +2505,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(t.dstState))))
 				}
 				Expect(getHost(infraEnvId, hostId).ValidationsInfo).To(BeEmpty())
-				err := hapi.RefreshStatus(ctx, &host, db)
+				err := hostAPI.RefreshStatus(ctx, &host, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
 				} else {
@@ -4339,7 +4311,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(t.dstState))))
 				}
 				Expect(getHost(infraEnvId, hostId).ValidationsInfo).To(BeEmpty())
-				err = hapi.RefreshStatus(ctx, &host, db)
+				err = hostAPI.RefreshStatus(ctx, &host, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
 				} else {
@@ -4398,7 +4370,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 						eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(t.dstState))))
 				}
-				err := hapi.RefreshStatus(ctx, &host, db)
+				err := hostAPI.RefreshStatus(ctx, &host, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
 				} else {
@@ -4849,7 +4821,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithSeverityMatcher(expectedSeverity)))
 				}
 
-				err = hapi.RefreshStatus(ctx, &host, db)
+				err = hostAPI.RefreshStatus(ctx, &host, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
 				} else {
@@ -4904,7 +4876,7 @@ var _ = Describe("Refresh Host", func() {
 					c.Status = swag.String(models.ClusterStatusInstalling)
 					Expect(db.Create(&c).Error).ToNot(HaveOccurred())
 
-					err := hapi.RefreshStatus(ctx, &h, db)
+					err := hostAPI.RefreshStatus(ctx, &h, db)
 
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(swag.StringValue(h.Status)).Should(Equal(srcState))
@@ -4925,7 +4897,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithClusterIdMatcher(clusterId.String()),
 						eventstest.WithSeverityMatcher(models.EventSeverityError)))
 
-					err := hapi.RefreshStatus(ctx, &h, db)
+					err := hostAPI.RefreshStatus(ctx, &h, db)
 
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusError))
@@ -4984,9 +4956,9 @@ var _ = Describe("Refresh Host", func() {
 			t := tests[i]
 			It(t.name, func() {
 				defaultConfig.DisabledHostvalidations = t.disabledValidations
-				hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil)
+				hostAPI = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil)
 
-				err := hapi.RefreshStatus(ctx, &host, db)
+				err := hostAPI.RefreshStatus(ctx, &host, db)
 				Expect(err).ToNot(HaveOccurred())
 
 				var resultHost models.Host
@@ -5058,7 +5030,7 @@ var _ = Describe("Refresh Host", func() {
 				cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
-				Expect(hapi.RefreshStatus(ctx, &host, db)).NotTo(HaveOccurred())
+				Expect(hostAPI.RefreshStatus(ctx, &host, db)).NotTo(HaveOccurred())
 
 				var resultHost models.Host
 				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", host.ID, clusterId.String()).Error).ToNot(HaveOccurred())
@@ -5072,7 +5044,7 @@ var _ = Describe("Refresh Host", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		BeforeEach(func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
-			hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil)
+			hostAPI = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil)
 		})
 
 		const (
@@ -5272,7 +5244,7 @@ var _ = Describe("Refresh Host", func() {
 					mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName)))
 				}
-				Expect(hapi.RefreshStatus(ctx, hosts[0], db)).NotTo(HaveOccurred())
+				Expect(hostAPI.RefreshStatus(ctx, hosts[0], db)).NotTo(HaveOccurred())
 
 				var resultHost models.Host
 				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hosts[0].ID, clusterId.String()).Error).ToNot(HaveOccurred())
@@ -5312,7 +5284,7 @@ var _ = Describe("Refresh Host", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		BeforeEach(func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
-			hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil)
+			hostAPI = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil)
 			mockDefaultClusterHostRequirements(mockHwValidator)
 			cluster = hostutil.GenerateTestCluster(clusterId)
 			cluster.UserManagedNetworking = swag.Bool(true)
@@ -5452,7 +5424,7 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
 						eventstest.WithClusterIdMatcher(host.ClusterID.String())))
 				}
-				Expect(hapi.RefreshStatus(ctx, &host, db)).NotTo(HaveOccurred())
+				Expect(hostAPI.RefreshStatus(ctx, &host, db)).NotTo(HaveOccurred())
 				var resultHost models.Host
 				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", host.ID, clusterId.String()).Error).ToNot(HaveOccurred())
 				t.statusInfoChecker.check(resultHost.StatusInfo)
@@ -5809,17 +5781,12 @@ var _ = Describe("Refresh Host", func() {
 						eventstest.WithClusterIdMatcher(swag.StringValue(nil))))
 				}
 
-				Expect(hapi.RefreshStatus(ctx, &host, db)).NotTo(HaveOccurred())
+				Expect(hostAPI.RefreshStatus(ctx, &host, db)).NotTo(HaveOccurred())
 				var resultHost models.Host
 				Expect(db.Take(&resultHost, "id = ? and infra_env_id = ?", host.ID, infraEnvId.String()).Error).ToNot(HaveOccurred())
 				Expect(resultHost.Status).To(Equal(&t.dstState))
 			})
 		}
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 })
 

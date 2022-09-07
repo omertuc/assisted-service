@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	authzv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/assisted-service/internal/common"

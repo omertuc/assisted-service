@@ -10,7 +10,7 @@ import (
 	"time"
 
 	gomock "github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -551,10 +551,6 @@ var _ = Describe("getImageFromRelease", func() {
 			}
 		})
 	}
-
-	AfterEach(func() {
-		ctrl.Finish()
-	})
 })
 
 func splitStringToInterfacesArray(str string) []interface{} {

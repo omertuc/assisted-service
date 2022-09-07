@@ -10,7 +10,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
@@ -111,7 +111,6 @@ var _ = Describe("chrony manifest", func() {
 			manifestsApi *manifestsapi.MockManifestsAPI
 			ntpUtils     ManifestsGeneratorAPI
 			db           *gorm.DB
-			dbName       string
 			clusterId    strfmt.UUID
 			cluster      common.Cluster
 		)
@@ -121,7 +120,7 @@ var _ = Describe("chrony manifest", func() {
 			ctrl = gomock.NewController(GinkgoT())
 			manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
 			ntpUtils = NewManifestsGenerator(manifestsApi, Config{})
-			db, dbName = common.PrepareTestDB()
+			db, _ = common.PrepareTestDB()
 			clusterId = strfmt.UUID(uuid.New().String())
 
 			hosts := make([]*models.Host, 0)
@@ -139,11 +138,6 @@ var _ = Describe("chrony manifest", func() {
 			}
 			Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
 			manifestsApi.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
-		})
-
-		AfterEach(func() {
-			ctrl.Finish()
-			common.DeleteTestDB(db, dbName)
 		})
 
 		It("CreateClusterManifest success", func() {
@@ -363,7 +357,6 @@ var _ = Describe("telemeter manifest", func() {
 		mockManifestsApi      *manifestsapi.MockManifestsAPI
 		manifestsGeneratorApi ManifestsGeneratorAPI
 		db                    *gorm.DB
-		dbName                string
 		clusterId             strfmt.UUID
 		cluster               common.Cluster
 	)
@@ -373,7 +366,7 @@ var _ = Describe("telemeter manifest", func() {
 		log = logrus.New()
 		ctrl = gomock.NewController(GinkgoT())
 		mockManifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterId = strfmt.UUID(uuid.New().String())
 
 		cluster = common.Cluster{
@@ -383,11 +376,6 @@ var _ = Describe("telemeter manifest", func() {
 		}
 		Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
 		mockManifestsApi.EXPECT().V2CreateClusterManifest(ctx, gomock.Any()).Times(0)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	for _, test := range []struct {
@@ -446,7 +434,6 @@ var _ = Describe("schedulable masters manifest", func() {
 		manifestsApi          *manifestsapi.MockManifestsAPI
 		manifestsGeneratorApi ManifestsGeneratorAPI
 		db                    *gorm.DB
-		dbName                string
 		clusterId             strfmt.UUID
 		cluster               common.Cluster
 	)
@@ -456,7 +443,7 @@ var _ = Describe("schedulable masters manifest", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
 		manifestsGeneratorApi = NewManifestsGenerator(manifestsApi, Config{})
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterId = strfmt.UUID(uuid.New().String())
 
 		cluster = common.Cluster{
@@ -466,11 +453,6 @@ var _ = Describe("schedulable masters manifest", func() {
 		}
 		Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
 		manifestsApi.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	Context("CreateClusterManifest success", func() {
@@ -499,7 +481,6 @@ var _ = Describe("disk encryption manifest", func() {
 		mockManifestsApi      *manifestsapi.MockManifestsAPI
 		manifestsGeneratorApi ManifestsGeneratorAPI
 		db                    *gorm.DB
-		dbName                string
 		clusterId             strfmt.UUID
 		c                     common.Cluster
 	)
@@ -510,7 +491,7 @@ var _ = Describe("disk encryption manifest", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockManifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
 		manifestsGeneratorApi = NewManifestsGenerator(mockManifestsApi, Config{})
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterId = strfmt.UUID(uuid.New().String())
 		c = common.Cluster{
 			Cluster: models.Cluster{
@@ -518,11 +499,6 @@ var _ = Describe("disk encryption manifest", func() {
 			},
 		}
 		mockManifestsApi.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	for _, t := range []struct {

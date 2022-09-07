@@ -8,7 +8,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/cluster"
@@ -19,68 +19,64 @@ import (
 
 const psTemplate = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"%s\",\"email\":\"r@r.com\"}}}"
 
-var _ = Describe("test authorization", func() {
-	ctx := context.Background()
+var accessReviewUnallowedUserStubID string
+var accessReviewAdminStubID string
 
-	var userClusterID, userClusterID2, userClusterID3 strfmt.UUID
+var capabilityReviewUnallowedUserStubID string
+var capabilityReviewAdminStubID string
 
-	var accessReviewUnallowedUserStubID string
-	var accessReviewAdminStubID string
+var capabilityReviewArmNotallowedUserStubID string
+var capabilityReviewArmallowedUserStubID string
 
-	var capabilityReviewUnallowedUserStubID string
-	var capabilityReviewAdminStubID string
+var _ = BeforeSuite(func() {
+	var err error
+	if Options.AuthType != auth.TypeRHSSO {
+		return
+	}
 
 	var capabilityReviewMultiarchNotallowedUserStubID string
 	var capabilityReviewMultiarchAllowedUserStubID string
 
-	BeforeSuite(func() {
-		var err error
-		if Options.AuthType != auth.TypeRHSSO {
-			return
-		}
+	accessReviewUnallowedUserStubID, err = wiremock.createStubAccessReview(fakePayloadUnallowedUser, false)
+	Expect(err).ShouldNot(HaveOccurred())
 
-		accessReviewUnallowedUserStubID, err = wiremock.createStubAccessReview(fakePayloadUnallowedUser, false)
-		Expect(err).ShouldNot(HaveOccurred())
+	accessReviewAdminStubID, err = wiremock.createStubAccessReview(fakePayloadAdmin, true)
+	Expect(err).ShouldNot(HaveOccurred())
 
-		accessReviewAdminStubID, err = wiremock.createStubAccessReview(fakePayloadAdmin, true)
-		Expect(err).ShouldNot(HaveOccurred())
+	capabilityReviewUnallowedUserStubID, err = wiremock.createStubBareMetalCapabilityReview(fakePayloadUnallowedUser, false)
+	Expect(err).ShouldNot(HaveOccurred())
 
-		capabilityReviewUnallowedUserStubID, err = wiremock.createStubBareMetalCapabilityReview(fakePayloadUnallowedUser, false)
-		Expect(err).ShouldNot(HaveOccurred())
+	capabilityReviewAdminStubID, err = wiremock.createStubBareMetalCapabilityReview(fakePayloadAdmin, true)
+	Expect(err).ShouldNot(HaveOccurred())
+})
 
-		capabilityReviewAdminStubID, err = wiremock.createStubBareMetalCapabilityReview(fakePayloadAdmin, true)
-		Expect(err).ShouldNot(HaveOccurred())
+var _ = AfterSuite(func() {
+	if Options.AuthType != auth.TypeRHSSO {
+		return
+	}
 
-		capabilityReviewMultiarchNotallowedUserStubID, err = wiremock.createStubMultiarchCapabilityReview(fakePayloadUsername, OrgId1, false)
-		Expect(err).ShouldNot(HaveOccurred())
 
-		capabilityReviewMultiarchAllowedUserStubID, err = wiremock.createStubMultiarchCapabilityReview(fakePayloadUsername2, OrgId2, true)
-		Expect(err).ShouldNot(HaveOccurred())
-	})
 
-	AfterSuite(func() {
-		if Options.AuthType != auth.TypeRHSSO {
-			return
-		}
+	err = wiremock.DeleteStub(accessReviewAdminStubID)
+	Expect(err).ShouldNot(HaveOccurred())
 
-		err := wiremock.DeleteStub(accessReviewUnallowedUserStubID)
-		Expect(err).ShouldNot(HaveOccurred())
+	err = wiremock.DeleteStub(capabilityReviewUnallowedUserStubID)
+	Expect(err).ShouldNot(HaveOccurred())
 
-		err = wiremock.DeleteStub(accessReviewAdminStubID)
-		Expect(err).ShouldNot(HaveOccurred())
+	err = wiremock.DeleteStub(capabilityReviewAdminStubID)
+	Expect(err).ShouldNot(HaveOccurred())
 
-		err = wiremock.DeleteStub(capabilityReviewUnallowedUserStubID)
-		Expect(err).ShouldNot(HaveOccurred())
+	err = wiremock.DeleteStub(capabilityReviewArmNotallowedUserStubID)
+	Expect(err).ShouldNot(HaveOccurred())
 
-		err = wiremock.DeleteStub(capabilityReviewAdminStubID)
-		Expect(err).ShouldNot(HaveOccurred())
+	err = wiremock.DeleteStub(capabilityReviewArmallowedUserStubID)
+	Expect(err).ShouldNot(HaveOccurred())
 
-		err = wiremock.DeleteStub(capabilityReviewMultiarchNotallowedUserStubID)
-		Expect(err).ShouldNot(HaveOccurred())
+	err = wiremock.DeleteStub(capabilityReviewMultiarchNotallowedUserStubID)
+	Expect(err).ShouldNot(HaveOccurred())
 
-		err = wiremock.DeleteStub(capabilityReviewMultiarchAllowedUserStubID)
-		Expect(err).ShouldNot(HaveOccurred())
-	})
+	err = wiremock.DeleteStub(capabilityReviewMultiarchAllowedUserStubID)
+	Expect(err).ShouldNot(HaveOccurred())
 
 	BeforeEach(func() {
 		var err error
@@ -126,9 +122,9 @@ var _ = Describe("test authorization", func() {
 			}
 		})
 
-		It("can delete cluster", func() {
-			_, err := editclusterUserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: userClusterID})
-			Expect(err).ShouldNot(HaveOccurred())
+		FIt("can delete cluster", func() {
+			log.Infof("deleting cluster %s", userClusterID)
+			Expect(editclusterUserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: userClusterID})).Error().ShouldNot(HaveOccurred())
 		})
 
 		It("can update cluster", func() {
