@@ -17,7 +17,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/cavaliercoder/go-cpio"
@@ -28,7 +27,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gomega_format "github.com/onsi/gomega/format"
 	amgmtv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
@@ -182,13 +181,6 @@ func mockUsageReports() {
 	mockUsage.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).AnyTimes()
 	mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-}
-
-func TestValidator(t *testing.T) {
-	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
-	RunSpecs(t, "inventory_test")
 }
 
 func getTestAuthHandler() auth.Authenticator {
@@ -348,19 +340,13 @@ var _ = Describe("RegisterHost", func() {
 		cfg    Config
 		db     *gorm.DB
 		ctx    = context.Background()
-		dbName string
 		hostID strfmt.UUID
 	)
 
 	BeforeEach(func() {
 		hostID = strfmt.UUID(uuid.New().String())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	It("register host to non-existing cluster", func() {
@@ -533,19 +519,13 @@ var _ = Describe("v2RegisterHost", func() {
 		cfg    Config
 		db     *gorm.DB
 		ctx    = context.Background()
-		dbName string
 		hostID strfmt.UUID
 	)
 
 	BeforeEach(func() {
 		hostID = strfmt.UUID(uuid.New().String())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	It("register host to non-existing infra-env", func() {
@@ -764,19 +744,13 @@ var _ = Describe("GetNextSteps", func() {
 		db                *gorm.DB
 		ctx               = context.Background()
 		defaultNextStepIn int64
-		dbName            string
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		defaultNextStepIn = 60
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("get_next_steps_unknown_host", func() {
@@ -834,19 +808,13 @@ var _ = Describe("v2GetNextSteps", func() {
 		db                *gorm.DB
 		ctx               = context.Background()
 		defaultNextStepIn int64
-		dbName            string
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		defaultNextStepIn = 60
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("get_next_steps_unknown_host", func() {
@@ -917,22 +885,16 @@ func makeFreeNetworksAddressesStr(elems ...*models.FreeNetworkAddresses) string 
 
 var _ = Describe("v2PostStepReply", func() {
 	var (
-		bm     *bareMetalInventory
-		cfg    Config
-		db     *gorm.DB
-		ctx    = context.Background()
-		dbName string
+		bm  *bareMetalInventory
+		cfg Config
+		db  *gorm.DB
+		ctx = context.Background()
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	Context("Free addresses", func() {
@@ -1398,22 +1360,16 @@ var _ = Describe("v2PostStepReply", func() {
 
 var _ = Describe("V2UpdateHostInstallProgress", func() {
 	var (
-		bm     *bareMetalInventory
-		cfg    Config
-		db     *gorm.DB
-		ctx    = context.Background()
-		dbName string
+		bm  *bareMetalInventory
+		cfg Config
+		db  *gorm.DB
+		ctx = context.Background()
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	Context("host exists", func() {
@@ -1536,11 +1492,6 @@ var _ = Describe("cluster", func() {
 		}`))
 		mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
 		mockUsageReports()
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	mockClusterPrepareForInstallationSuccess := func(mockClusterApi *cluster.MockAPI) {
@@ -4432,7 +4383,6 @@ var _ = Describe("cluster", func() {
 
 		AfterEach(func() {
 			close(DoneChannel)
-			common.DeleteTestDB(db, dbName)
 		})
 	})
 })
@@ -4448,14 +4398,13 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 		db             *gorm.DB
 		ctx            = context.Background()
 		clusterID      strfmt.UUID
-		dbName         string
 		ignitionReader io.ReadCloser
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		Expect(cfg.IPv6Support).Should(BeTrue())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		bm.ocmClient = nil
 
@@ -4475,11 +4424,6 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 		}`))
 		mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
 		mockUsageReports()
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	addHost := func(hostId strfmt.UUID, role models.HostRole, state, kind string, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
@@ -5345,11 +5289,6 @@ var _ = Describe("infraEnvs", func() {
 
 	})
 
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
-	})
-
 	Context("Delete", func() {
 		BeforeEach(func() {
 			infraEnvID = strfmt.UUID(uuid.New().String())
@@ -5983,7 +5922,7 @@ var _ = Describe("infraEnvs", func() {
 		)
 
 		BeforeEach(func() {
-			db, dbName = common.PrepareTestDB()
+			db, _ = common.PrepareTestDB()
 			clusterID = strfmt.UUID(uuid.New().String())
 
 			cfg := auth.GetConfigRHSSO()
@@ -6000,10 +5939,6 @@ var _ = Describe("infraEnvs", func() {
 					Kind:     swag.String(models.ClusterKindCluster),
 					UserName: userName1}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			common.DeleteTestDB(db, dbName)
 		})
 
 		It("successful creation - cluster owner", func() {
@@ -6869,7 +6804,6 @@ var _ = Describe("infraEnvs host", func() {
 		db         *gorm.DB
 		ctx        = context.Background()
 		infraEnvID strfmt.UUID
-		dbName     string
 	)
 
 	const (
@@ -6880,7 +6814,7 @@ var _ = Describe("infraEnvs host", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 
 		infraEnvID = strfmt.UUID(uuid.New().String())
@@ -7427,11 +7361,6 @@ var _ = Describe("infraEnvs host", func() {
 			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
 		})
 	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("KubeConfig download", func() {
@@ -7443,12 +7372,11 @@ var _ = Describe("KubeConfig download", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		c         common.Cluster
-		dbName    string
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 
 		bm = createInventory(db, cfg)
@@ -7459,11 +7387,6 @@ var _ = Describe("KubeConfig download", func() {
 		}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("V2 kubeconfig presigned backend not aws", func() {
@@ -7512,11 +7435,10 @@ var _ = Describe("DownloadMinimalInitrd", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		infraEnv  common.InfraEnv
-		dbName    string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
 		infraEnv = common.InfraEnv{
@@ -7529,11 +7451,6 @@ var _ = Describe("DownloadMinimalInitrd", func() {
 		}
 		err := db.Create(&infraEnv).Error
 		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	It("returns not found with a non-existant cluster", func() {
@@ -7638,12 +7555,11 @@ var _ = Describe("V2UploadClusterIngressCert test", func() {
 		kubeconfigFile      *os.File
 		kubeconfigNoingress string
 		kubeconfigObject    string
-		dbName              string
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ingressCa = "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
 			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
 			"MQswCQYDVQQHDAJkZDELMAkGA1UECgwCZGQxCzAJBgNVBAsMAmRkMQswCQYDVQQDDAJkZDERMA8GCSqGSIb3DQEJARYCZGQwHhcNMjAwNTI1MTYwNTAwWhcNMzA" +
@@ -7675,8 +7591,6 @@ var _ = Describe("V2UploadClusterIngressCert test", func() {
 	})
 
 	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 		kubeconfigFile.Close()
 	})
 
@@ -7822,13 +7736,12 @@ var _ = Describe("List clusters", func() {
 		userName3          = "test_user_3"
 		c                  common.Cluster
 		kubeconfigFile     *os.File
-		dbName             string
 		host1              models.Host
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
 		c = common.Cluster{Cluster: models.Cluster{
@@ -7846,8 +7759,6 @@ var _ = Describe("List clusters", func() {
 	})
 
 	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 		kubeconfigFile.Close()
 	})
 
@@ -8115,7 +8026,6 @@ var _ = Describe("Upload and Download logs test", func() {
 		hostID         strfmt.UUID
 		c              common.Cluster
 		kubeconfigFile *os.File
-		dbName         string
 		request        *http.Request
 		host1          models.Host
 		hostLogsType   = string(models.LogsTypeHost)
@@ -8123,7 +8033,7 @@ var _ = Describe("Upload and Download logs test", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
 
@@ -8154,9 +8064,7 @@ var _ = Describe("Upload and Download logs test", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 		kubeconfigFile.Close()
-		ctrl.Finish()
 	})
 
 	It("Upload logs cluster not exits", func() {
@@ -8546,11 +8454,10 @@ var _ = Describe("GetClusterInstallConfig", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		c         common.Cluster
-		dbName    string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
 		c = common.Cluster{Cluster: models.Cluster{
@@ -8561,11 +8468,6 @@ var _ = Describe("GetClusterInstallConfig", func() {
 		}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	It("check get install config flow", func() {
@@ -8585,11 +8487,10 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		c         common.Cluster
-		dbName    string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
 		c = common.Cluster{
@@ -8601,11 +8502,6 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	It("saves the given string to the cluster", func() {
@@ -8692,13 +8588,12 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		cfg          Config
 		db           *gorm.DB
 		ctx          = context.Background()
-		dbName       string
 		infraEnvID   strfmt.UUID
 		testTokenKey = "6aa03bd3b328d44ddf9a9fefc1290a01a3d52294b51d2b54b61819010206c917" // #nosec
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		cfg.ServiceBaseURL = "https://test.com"
 		bm = createInventory(db, cfg)
 		var err error
@@ -8717,11 +8612,6 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 			PullSecret:    "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		}
 		Expect(db.Create(&infraEnv).Error).To(Succeed())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	getResponse := func(fileName string, withMac bool, ipxeScriptType *string) middleware.Responder {
@@ -9063,11 +8953,10 @@ var _ = Describe("UpdateInfraEnv - Ignition", func() {
 		clusterID strfmt.UUID
 		c         common.Cluster
 		infraEnv  common.InfraEnv
-		dbName    string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
 		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
@@ -9079,11 +8968,6 @@ var _ = Describe("UpdateInfraEnv - Ignition", func() {
 		}
 		err = db.Create(&infraEnv).Error
 		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	It("saves the given string to InfraEnv", func() {
@@ -9218,7 +9102,6 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		bm        *bareMetalInventory
 		cfg       Config
 		db        *gorm.DB
-		dbName    string
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		c         *models.Cluster
@@ -9227,7 +9110,7 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 	BeforeEach(func() {
 		cfg.DefaultNTPSource = ""
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 			db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
@@ -9245,11 +9128,6 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 		c = reply.(*installer.V2RegisterClusterCreated).Payload
 		clusterID = *c.ID
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	addHost := func(clusterId strfmt.UUID, inventory string, role models.HostRole) {
@@ -9395,7 +9273,6 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		bm            *bareMetalInventory
 		cfg           Config
 		db            *gorm.DB
-		dbName        string
 		ctx           = context.Background()
 		clusterName   string
 		apiVIPDnsname string
@@ -9404,17 +9281,12 @@ var _ = Describe("Register AddHostsCluster test", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterName = "add-hosts-cluster"
 		apiVIPDnsname = "api-vip.redhat.com"
 		bm = createInventory(db, cfg)
 		body := &bytes.Buffer{}
 		request, _ = http.NewRequest("POST", "test", body)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	It("Create V2 AddHosts cluster", func() {
@@ -9480,13 +9352,12 @@ var _ = Describe("Reset Host test", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		hostID    strfmt.UUID
-		dbName    string
 		request   *http.Request
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{
@@ -9497,11 +9368,6 @@ var _ = Describe("Reset Host test", func() {
 		}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	It("V2 Reset day2 host", func() {
@@ -9549,13 +9415,12 @@ var _ = Describe("Install Host test", func() {
 		clusterID  strfmt.UUID
 		infraEnvId strfmt.UUID
 		hostID     strfmt.UUID
-		dbName     string
 		request    *http.Request
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		infraEnvId = clusterID
 		hostID = strfmt.UUID(uuid.New().String())
@@ -9567,11 +9432,6 @@ var _ = Describe("Install Host test", func() {
 		}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	It("[V2] Install day2 host", func() {
@@ -9680,12 +9540,11 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 		db        *gorm.DB
 		ctx       = context.Background()
 		clusterID strfmt.UUID
-		dbName    string
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
@@ -9696,11 +9555,6 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	It("Install Single Day2 Host", func() {
@@ -9742,12 +9596,11 @@ var _ = Describe("Transform day1 cluster to a day2 cluster test", func() {
 		db        *gorm.DB
 		ctx       = context.Background()
 		clusterID strfmt.UUID
-		dbName    string
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
@@ -9757,11 +9610,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster test", func() {
 		}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	It("successfully transform day1 cluster to a day2 cluster", func() {
@@ -9778,27 +9626,21 @@ var _ = Describe("Transform day1 cluster to a day2 cluster test", func() {
 
 var _ = Describe("TestRegisterCluster", func() {
 	var (
-		bm     *bareMetalInventory
-		cfg    Config
-		db     *gorm.DB
-		dbName string
-		ctx    = context.Background()
+		bm  *bareMetalInventory
+		cfg Config
+		db  *gorm.DB
+		ctx = context.Background()
 	)
 
 	BeforeEach(func() {
 		cfg.DefaultNTPSource = ""
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		Expect(cfg.DiskEncryptionSupport).Should(BeTrue())
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 			db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		mockUsageReports()
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	Context("Platform", func() {
@@ -10451,17 +10293,12 @@ var _ = Describe("TestRegisterCluster", func() {
 	var _ = Describe("API and Ingress VIPs", func() {
 		BeforeEach(func() {
 			Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-			db, dbName = common.PrepareTestDB()
+			db, _ = common.PrepareTestDB()
 			cfg.DiskEncryptionSupport = false
 			bm = createInventory(db, cfg)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			mockUsageReports()
-		})
-
-		AfterEach(func() {
-			ctrl.Finish()
-			common.DeleteTestDB(db, dbName)
 		})
 
 		Context("V2 Register cluster", func() {
@@ -10707,17 +10544,12 @@ var _ = Describe("TestRegisterCluster", func() {
 
 		BeforeEach(func() {
 			Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-			db, dbName = common.PrepareTestDB()
+			db, _ = common.PrepareTestDB()
 			cfg.DiskEncryptionSupport = false
 			bm = createInventory(db, cfg)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			mockUsageReports()
-		})
-
-		AfterEach(func() {
-			common.DeleteTestDB(db, dbName)
-			ctrl.Finish()
 		})
 
 		Context("V2 Register cluster", func() {
@@ -11195,21 +11027,15 @@ var _ = Describe("AMS subscriptions", func() {
 		cfg         Config
 		bm          *bareMetalInventory
 		db          *gorm.DB
-		dbName      string
 		clusterName = "ams-cluster"
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		mockUsageReports()
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	Context("With AMS subscriptions", func() {
@@ -11512,10 +11338,6 @@ var _ = Describe("update image version", func() {
 		}
 	})
 
-	AfterEach(func() {
-		ctrl.Finish()
-	})
-
 	It("same image full name", func() {
 		agentImage := fmt.Sprintf("quay.io:5000/example/agent:%s", uuid.New().String())
 		bm.AgentDockerImg = agentImage
@@ -11591,14 +11413,13 @@ var _ = Describe("V2GetHostIgnition and V2DownloadHostIgnition", func() {
 		cfg        Config
 		db         *gorm.DB
 		ctx        = context.Background()
-		dbName     string
 		clusterID  strfmt.UUID
 		infraEnvID strfmt.UUID
 		hostID     strfmt.UUID
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 
 		// create a cluster
@@ -11616,11 +11437,6 @@ var _ = Describe("V2GetHostIgnition and V2DownloadHostIgnition", func() {
 		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
 		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
 		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	It("return not found when given a non-existent infra env", func() {
@@ -11732,11 +11548,10 @@ var _ = Describe("V2UpdateHostIgnition", func() {
 		clusterID  strfmt.UUID
 		infraEnvID strfmt.UUID
 		hostID     strfmt.UUID
-		dbName     string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
@@ -11750,10 +11565,6 @@ var _ = Describe("V2UpdateHostIgnition", func() {
 		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
 		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
 		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("saves the given string to the host", func() {
@@ -11892,7 +11703,6 @@ var _ = Describe("V2UpdateHostIgnition - with rhsso auth", func() {
 		clusterID    strfmt.UUID
 		hostID       strfmt.UUID
 		infraEnvID   strfmt.UUID
-		dbName       string
 		userName1    = "test_user_1"
 		userName2    = "test_user_2"
 		mockOcmAuthz *ocm.MockOCMAuthorization
@@ -11900,7 +11710,7 @@ var _ = Describe("V2UpdateHostIgnition - with rhsso auth", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
@@ -11942,10 +11752,6 @@ var _ = Describe("V2UpdateHostIgnition - with rhsso auth", func() {
 			},
 		}
 		Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("successful update host ignition - cluster owner", func() {
@@ -12048,11 +11854,10 @@ var _ = Describe("BindHost", func() {
 		clusterID  strfmt.UUID
 		hostID     strfmt.UUID
 		infraEnvID strfmt.UUID
-		dbName     string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
@@ -12065,21 +11870,12 @@ var _ = Describe("BindHost", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
-
 	It("successful bind", func() {
 		params := installer.BindHostParams{
 			HostID:         hostID,
 			InfraEnvID:     infraEnvID,
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
-		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
-			eventstest.WithHostIdMatcher(params.HostID.String()),
-			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
-			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
@@ -12168,12 +11964,6 @@ var _ = Describe("BindHost", func() {
 			InfraEnvID:     infraEnvID,
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
-		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
-			eventstest.WithHostIdMatcher(params.HostID.String()),
-			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
-			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
-		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
 		response := bm.BindHost(ctx, params)
 		verifyApiErrorString(response, http.StatusBadRequest, "doesn't match")
 	})
@@ -12201,11 +11991,6 @@ var _ = Describe("BindHost", func() {
 			InfraEnvID:     infraEnvID,
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
-		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
-			eventstest.WithHostIdMatcher(params.HostID.String()),
-			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
-			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
@@ -12230,11 +12015,6 @@ var _ = Describe("BindHost", func() {
 			InfraEnvID:     infraEnvID,
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
-		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
-			eventstest.WithHostIdMatcher(params.HostID.String()),
-			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
-			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
@@ -12249,13 +12029,8 @@ var _ = Describe("BindHost", func() {
 			InfraEnvID:     infraEnvID,
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
-		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
-			eventstest.WithHostIdMatcher(params.HostID.String()),
-			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
-			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
 		response := bm.BindHost(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.BindHostOK{}))
@@ -12324,15 +12099,14 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 		clusterID    strfmt.UUID
 		hostID       strfmt.UUID
 		infraEnvID   strfmt.UUID
-		dbName       string
 		userName1    = "test_user_1"
 		userName2    = "test_user_2"
 		mockOcmAuthz *ocm.MockOCMAuthorization
-		payload      *ocm.AuthPayload
+		authPayload  *ocm.AuthPayload
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
@@ -12343,7 +12117,7 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 		mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
 		bm.authHandler = auth.NewRHSSOAuthenticator(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
 		bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
-		payload = &ocm.AuthPayload{Role: ocm.UserRole}
+		authPayload = &ocm.AuthPayload{Role: ocm.UserRole}
 
 		err := db.Create(&common.Cluster{
 			Cluster: models.Cluster{
@@ -12357,26 +12131,17 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
-
 	It("successful bind - cluster owner", func() {
 		params := installer.BindHostParams{
 			HostID:         hostID,
 			InfraEnvID:     infraEnvID,
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
-		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
-			eventstest.WithHostIdMatcher(params.HostID.String()),
-			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
-			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
-		payload.Username = userName1
-		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+		authPayload.Username = userName1
+		authCtx = context.WithValue(ctx, restapi.AuthKey, authPayload)
 
 		mockHostApi.EXPECT().BindHost(authCtx, gomock.Any(), clusterID, gomock.Any())
 		response := bm.BindHost(authCtx, params)
@@ -12389,21 +12154,15 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 			InfraEnvID:     infraEnvID,
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
-		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
-			eventstest.WithHostIdMatcher(params.HostID.String()),
-			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
-			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-
-		payload.Username = userName2
-		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
-
 		mockOcmAuthz.EXPECT().AccessReview(
 			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 
+		authPayload.Username = userName2
+		authCtx = context.WithValue(ctx, restapi.AuthKey, authPayload)
 		mockHostApi.EXPECT().BindHost(authCtx, gomock.Any(), clusterID, gomock.Any())
+
 		response := bm.BindHost(authCtx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.BindHostOK{}))
 	})
@@ -12415,8 +12174,8 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
 
-		payload.Username = userName2
-		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+		authPayload.Username = userName2
+		authCtx = context.WithValue(ctx, restapi.AuthKey, authPayload)
 
 		mockOcmAuthz.EXPECT().AccessReview(
 			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
@@ -12432,9 +12191,9 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
 
-		payload.Username = userName2
-		payload.Organization = "another_org"
-		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+		authPayload.Username = userName2
+		authPayload.Organization = "another_org"
+		authCtx = context.WithValue(ctx, restapi.AuthKey, authPayload)
 
 		mockOcmAuthz.EXPECT().AccessReview(
 			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
@@ -12453,11 +12212,10 @@ var _ = Describe("UnbindHost", func() {
 		clusterID  strfmt.UUID
 		hostID     strfmt.UUID
 		infraEnvID strfmt.UUID
-		dbName     string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
@@ -12468,20 +12226,11 @@ var _ = Describe("UnbindHost", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
-
 	It("successful unbind", func() {
 		params := installer.UnbindHostParams{
 			HostID:     hostID,
 			InfraEnvID: infraEnvID,
 		}
-		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
-			eventstest.WithHostIdMatcher(params.HostID.String()),
-			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
-			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any(), false)
 		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		response := bm.UnbindHost(ctx, params)
@@ -12543,11 +12292,10 @@ var _ = Describe("V2UpdateHostInstallerArgs", func() {
 		clusterID  strfmt.UUID
 		infraEnvID strfmt.UUID
 		hostID     strfmt.UUID
-		dbName     string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
@@ -12557,10 +12305,6 @@ var _ = Describe("V2UpdateHostInstallerArgs", func() {
 		// add a host
 		hostID = strfmt.UUID(uuid.New().String())
 		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("saves the given array to the host", func() {
@@ -12631,7 +12375,6 @@ var _ = Describe("V2UpdateHostInstallerArgs - with rhsso auth", func() {
 		clusterID    strfmt.UUID
 		hostID       strfmt.UUID
 		infraEnvID   strfmt.UUID
-		dbName       string
 		userName1    = "test_user_1"
 		userName2    = "test_user_2"
 		mockOcmAuthz *ocm.MockOCMAuthorization
@@ -12639,7 +12382,7 @@ var _ = Describe("V2UpdateHostInstallerArgs - with rhsso auth", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
 
@@ -12657,10 +12400,6 @@ var _ = Describe("V2UpdateHostInstallerArgs - with rhsso auth", func() {
 		// add a host
 		hostID = strfmt.UUID(uuid.New().String())
 		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("successful update host installer args - cluster owner", func() {
@@ -12748,11 +12487,10 @@ var _ = Describe("UpdateHostApproved", func() {
 		clusterID  strfmt.UUID
 		infraEnvID strfmt.UUID
 		hostID     strfmt.UUID
-		dbName     string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
@@ -12761,10 +12499,6 @@ var _ = Describe("UpdateHostApproved", func() {
 
 		hostID = strfmt.UUID(uuid.New().String())
 		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("get default approved value", func() {
@@ -12794,19 +12528,15 @@ var _ = Describe("Calculate host networks", func() {
 		db        *gorm.DB
 		clusterID strfmt.UUID
 		hostID    strfmt.UUID
-		dbName    string
 	)
 	BeforeEach(func() {
 		cfg = &Config{}
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
 	It("Duplicates and disabled IPv6 - single-stack v4 host", func() {
 		// add a single-stack v4 host
 		hostID = strfmt.UUID(uuid.New().String())
@@ -12923,20 +12653,14 @@ var _ = Describe("Calculate host networks", func() {
 
 var _ = Describe("Get Cluster by Kube Key", func() {
 	var (
-		db     *gorm.DB
-		dbName string
-		bm     *bareMetalInventory
-		cfg    Config
+		db  *gorm.DB
+		bm  *bareMetalInventory
+		cfg Config
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("get cluster by kube key success", func() {
@@ -13007,10 +12731,6 @@ var _ = Describe("IPv6 support disabled", func() {
 		Expect(cfg.IPv6Support).Should(BeTrue())
 		cfg.IPv6Support = false
 		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
 	})
 
 	Context("Register cluster", func() {
@@ -13134,10 +12854,6 @@ var _ = Describe("Dual-stack cluster", func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		Expect(cfg.IPv6Support).Should(BeTrue())
 		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
 	})
 
 	Context("Register cluster", func() {
@@ -13303,16 +13019,15 @@ var _ = Describe("Dual-stack cluster", func() {
 var _ = Describe("GetCredentials", func() {
 
 	var (
-		ctx    = context.Background()
-		cfg    = Config{}
-		bm     *bareMetalInventory
-		db     *gorm.DB
-		dbName string
-		c      common.Cluster
+		ctx = context.Background()
+		cfg = Config{}
+		bm  *bareMetalInventory
+		db  *gorm.DB
+		c   common.Cluster
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 
 		clusterID := strfmt.UUID(uuid.New().String())
@@ -13322,11 +13037,6 @@ var _ = Describe("GetCredentials", func() {
 			},
 		}
 		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	It("Console operator available", func() {
@@ -13354,18 +13064,13 @@ var _ = Describe("AddReleaseImage", func() {
 		ctx          = context.Background()
 		bm           *bareMetalInventory
 		db           *gorm.DB
-		dbName       string
 		pullSecret   = "test_pull_secret"
 		releaseImage = "releaseImage"
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("successfully added version", func() {
@@ -13391,7 +13096,6 @@ var _ = Describe("Platform tests", func() {
 		ctx                = context.Background()
 		bm                 *bareMetalInventory
 		db                 *gorm.DB
-		dbName             string
 		registerParams     *installer.V2RegisterClusterParams
 		getVSpherePlatform = func() *models.Platform {
 			return &models.Platform{
@@ -13408,7 +13112,7 @@ var _ = Describe("Platform tests", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		mockOperators := operators.NewMockAPI(ctrl)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
@@ -13422,11 +13126,6 @@ var _ = Describe("Platform tests", func() {
 		mockClusterRegisterSuccess(true)
 		mockUsageReports()
 		mockOperators.EXPECT().ValidateCluster(ctx, gomock.Any()).AnyTimes()
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	Context("Register cluster", func() {
@@ -13490,18 +13189,12 @@ var _ = Describe("DownloadClusterFiles", func() {
 		newCluster *common.Cluster
 		ctx        = context.Background()
 		db         *gorm.DB
-		dbName     string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	It("allows downloading cluster owner files when not using auth", func() {
@@ -13544,12 +13237,11 @@ var _ = Describe("[V2] V2DownloadClusterCredentials", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 		ctx       = context.Background()
 		db        *gorm.DB
-		dbName    string
 		c         *common.Cluster
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 
 		c = &common.Cluster{Cluster: models.Cluster{
@@ -13560,11 +13252,6 @@ var _ = Describe("[V2] V2DownloadClusterCredentials", func() {
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		Expect(db.Create(c).Error).ShouldNot(HaveOccurred())
 		Expect(common.CreateInfraEnvForCluster(db, c, models.ImageTypeFullIso)).ShouldNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	It("v2 blocks downloading cluster credentials files", func() {
@@ -13688,20 +13375,15 @@ var _ = Describe("Update cluster - feature usage flags", func() {
 		cfg     Config
 		db      *gorm.DB
 		cluster *common.Cluster
-		dbName  string
 		usages  = map[string]models.Usage{}
 	)
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		Expect(cfg.IPv6Support).Should(BeTrue())
 		cfg = Config{}
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		cluster = createCluster(db, models.ClusterStatusPendingForInput)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	Context("CPU Architecture usage", func() {
@@ -13827,12 +13509,11 @@ var _ = Describe("Download presigned cluster credentials", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		c         common.Cluster
-		dbName    string
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 
 		bm = createInventory(db, cfg)
@@ -13843,11 +13524,6 @@ var _ = Describe("Download presigned cluster credentials", func() {
 		}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("kubeconfig presigned backend not aws", func() {
@@ -13971,12 +13647,11 @@ var _ = Describe("RegenerateInfraEnvSigningKey", func() {
 		cfg        Config
 		db         *gorm.DB
 		ctx        = context.Background()
-		dbName     string
 		infraEnvID strfmt.UUID
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 
 		infraEnvID = strfmt.UUID(uuid.New().String())
@@ -13987,11 +13662,6 @@ var _ = Describe("RegenerateInfraEnvSigningKey", func() {
 			ImageTokenKey: "initialkeyhere",
 		}
 		Expect(db.Create(ie).Error).To(Succeed())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	It("returns NotFound for a missing infraEnv", func() {
@@ -14018,13 +13688,12 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 		cfg          Config
 		db           *gorm.DB
 		ctx          = context.Background()
-		dbName       string
 		infraEnvID   strfmt.UUID
 		testTokenKey = "6aa03bd3b328d44ddf9a9fefc1290a01a3d52294b51d2b54b61819010206c917" // #nosec
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		var err error
 		bm.ImageExpirationTime, err = time.ParseDuration("4h")
@@ -14040,11 +13709,6 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			ImageTokenKey: testTokenKey,
 		}
 		Expect(db.Create(ie).Error).To(Succeed())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	getNewURL := func() *models.PresignedURL {
@@ -14143,14 +13807,13 @@ var _ = Describe("GetInfraEnvPresignedFileURL", func() {
 		cfg          Config
 		db           *gorm.DB
 		ctx          = context.Background()
-		dbName       string
 		infraEnvID   strfmt.UUID
 		testTokenKey = "6aa03bd3b328d44ddf9a9fefc1290a01a3d52294b51d2b54b61819010206c917" // #nosec
 		serviceHost  = "assisted.example.com"
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		var err error
 		bm.ImageExpirationTime, err = time.ParseDuration("4h")
@@ -14165,11 +13828,6 @@ var _ = Describe("GetInfraEnvPresignedFileURL", func() {
 			ImageTokenKey: testTokenKey,
 		}
 		Expect(db.Create(ie).Error).To(Succeed())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	tryGetUrl := func(filename string, ipxeScriptType *string) middleware.Responder {
@@ -14297,7 +13955,6 @@ var _ = Describe("GetHostByKubeKey", func() {
 		bm        *bareMetalInventory
 		cfg       Config
 		db        *gorm.DB
-		dbName    string
 		hostID    *strfmt.UUID
 		clusterID *strfmt.UUID
 		kubeKey   = types.NamespacedName{
@@ -14307,18 +13964,13 @@ var _ = Describe("GetHostByKubeKey", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		cluster := createClusterWithAvailability(db, models.ClusterStatusReady, models.ClusterCreateParamsHighAvailabilityModeNone)
 		clusterID = cluster.ID
 		// this doesn't need to be a VM, but any host works for this test
 		addVMToCluster(cluster, db)
 		hostID = cluster.Hosts[0].ID
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	var getHost = func(_ types.NamespacedName) (*common.Host, error) {

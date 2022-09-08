@@ -25,6 +25,7 @@ a minikube cluster in preperation for subsystem tests.
 
 First we must prepare the minikube cluster -
 
+
 ```bash
 # Optionally delete the existing minikube cluster:
 # minikube delete
@@ -45,8 +46,12 @@ while ! curl --location $LOCAL_SUBSYSTEM_REGISTRY; do
     echo "are any errors"
 done
 
+echo "Done"
+
 # Make a tunnel to make minikube services reachable (the command will ask for root password):
 nohup minikube tunnel &>/dev/null &
+
+echo "You can now run subsystem tests"
 ```
 
 Now that the cluster is prepared, we can deploy the service - 

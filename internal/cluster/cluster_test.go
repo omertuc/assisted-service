@@ -15,7 +15,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
@@ -52,13 +52,12 @@ var _ = Describe("stateMachine", func() {
 		cluster          *common.Cluster
 		refreshedCluster *common.Cluster
 		stateErr         error
-		dbName           string
 		mockOperators    *operators.MockAPI
 		mockS3Client     *s3wrapper.MockAPI
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		dummy := &leader.DummyElector{}
 		ctrl := gomock.NewController(GinkgoT())
 		mockOperators = operators.NewMockAPI(ctrl)
@@ -88,7 +87,6 @@ var _ = Describe("stateMachine", func() {
 		})
 
 		AfterEach(func() {
-			common.DeleteTestDB(db, dbName)
 			Expect(refreshedCluster).To(BeNil())
 			Expect(stateErr).Should(HaveOccurred())
 		})
@@ -117,13 +115,12 @@ var _ = Describe("TestClusterMonitoring", func() {
 		ctrl              *gomock.Controller
 		mockHostAPI       *host.MockAPI
 		mockMetric        *metrics.MockAPI
-		dbName            string
 		mockEvents        *eventsapi.MockHandler
 		mockS3Client      *s3wrapper.MockAPI
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		id = strfmt.UUID(uuid.New().String())
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -679,11 +676,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 		})
 
 	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
 })
 
 var _ = Describe("lease timeout event", func() {
@@ -695,11 +687,10 @@ var _ = Describe("lease timeout event", func() {
 		ctrl        *gomock.Controller
 		mockHostAPI *host.MockAPI
 		mockMetric  *metrics.MockAPI
-		dbName      string
 		mockEvents  *eventsapi.MockHandler
 	)
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		id = strfmt.UUID(uuid.New().String())
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -790,12 +781,8 @@ var _ = Describe("lease timeout event", func() {
 					eventstest.WithClusterIdMatcher(c.ID.String()))).Times(t.eventCalllsExpected)
 			}
 			clusterApi.ClusterMonitoring()
-			ctrl.Finish()
 		})
 	}
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("Auto assign machine CIDR", func() {
@@ -807,12 +794,11 @@ var _ = Describe("Auto assign machine CIDR", func() {
 		ctrl               *gomock.Controller
 		mockHostAPI        *host.MockAPI
 		mockMetric         *metrics.MockAPI
-		dbName             string
 		mockEvents         *eventsapi.MockHandler
 		defaultIPv4Address = common.NetAddress{IPv4Address: []string{"1.2.3.0/24"}}
 	)
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		id = strfmt.UUID(uuid.New().String())
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -1302,13 +1288,8 @@ var _ = Describe("Auto assign machine CIDR", func() {
 					Expect(t.expectedMachineNetworks).To(ContainElement(m))
 				}
 			}
-
-			ctrl.Finish()
 		})
 	}
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("VerifyRegisterHost", func() {
@@ -1319,11 +1300,10 @@ var _ = Describe("VerifyRegisterHost", func() {
 		preInstalledError      string = "Host can register only in one of the following states: [insufficient ready pending-for-input adding-hosts]"
 		postInstalledErrorSaas string = "Cannot add hosts to an existing cluster using the original Discovery ISO. Try to add new hosts by using the Discovery ISO that can be found in console.redhat.com under your cluster “Add hosts“ tab."
 		postInstalledError     string = "Cannot add hosts to an existing cluster using the original Discovery ISO."
-		dbName                 string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		id = strfmt.UUID(uuid.New().String())
 		ctrl := gomock.NewController(GinkgoT())
 		mockOperators := operators.NewMockAPI(ctrl)
@@ -1368,10 +1348,6 @@ var _ = Describe("VerifyRegisterHost", func() {
 		clusterApi.authHandler = &auth.NoneAuthenticator{}
 		checkVerifyRegisterHost(models.ClusterStatusInstalled, true, postInstalledError)
 	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("VerifyClusterUpdatability", func() {
@@ -1380,11 +1356,10 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 		id          strfmt.UUID
 		clusterApi  *Manager
 		errTemplate = "Cluster %s is in %s state, cluster can be updated only in one of [insufficient ready pending-for-input adding-hosts]"
-		dbName      string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		id = strfmt.UUID(uuid.New().String())
 		ctrl := gomock.NewController(GinkgoT())
 		mockOperators := operators.NewMockAPI(ctrl)
@@ -1419,10 +1394,6 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 	It("Update cluster while error", func() {
 		checkVerifyClusterUpdatability(models.ClusterStatusError, true)
 	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("CancelInstallation", func() {
@@ -1434,20 +1405,20 @@ var _ = Describe("CancelInstallation", func() {
 		eventsHandler eventsapi.Handler
 		ctrl          *gomock.Controller
 		mockMetric    *metrics.MockAPI
-		dbName        string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		eventsHandler = events.New(db, nil, logrus.New())
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockOperators := operators.NewMockAPI(ctrl)
 		dummy := &leader.DummyElector{}
-		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, dummy, mockOperators, nil, nil, nil, nil)
-		id := strfmt.UUID(uuid.New().String())
+		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler,
+			nil, mockMetric, nil, dummy, mockOperators, nil, nil, nil, nil)
+		clusterID := strfmt.UUID(uuid.New().String())
 		c = common.Cluster{Cluster: models.Cluster{
-			ID:         &id,
+			ID:         &clusterID,
 			Status:     swag.String(models.ClusterStatusInsufficient),
 			StatusInfo: swag.String(StatusInfoInsufficient)}}
 	})
@@ -1457,8 +1428,11 @@ var _ = Describe("CancelInstallation", func() {
 			c.Status = swag.String(models.ClusterStatusInstalling)
 			c.InstallStartedAt = strfmt.DateTime(time.Now().Add(-time.Minute))
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusCancelled, models.ClusterStatusInstalling, c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusCancelled,
+				models.ClusterStatusInstalling, c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
+
 			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
+
 			events, err := eventsHandler.V2GetEvents(ctx, c.ID, nil, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
@@ -1470,8 +1444,9 @@ var _ = Describe("CancelInstallation", func() {
 			c.Status = swag.String(models.ClusterStatusError)
 			c.InstallStartedAt = strfmt.DateTime(time.Now().Add(-time.Minute))
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusCancelled, models.ClusterStatusError, c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
+
 			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
+
 			events, err := eventsHandler.V2GetEvents(ctx, c.ID, nil, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
@@ -1489,18 +1464,15 @@ var _ = Describe("CancelInstallation", func() {
 	Context("invalid_cancel_installation", func() {
 		It("nothing_to_cancel", func() {
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusCancelled, models.ClusterStatusInsufficient, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+
 			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).Should(HaveOccurred())
+
 			events, err := eventsHandler.V2GetEvents(ctx, c.ID, nil, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
 			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityError))
 		})
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -1511,11 +1483,10 @@ var _ = Describe("ResetCluster", func() {
 		state         API
 		c             common.Cluster
 		eventsHandler eventsapi.Handler
-		dbName        string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		eventsHandler = events.New(db, nil, logrus.New())
 		dummy := &leader.DummyElector{}
 		ctrl := gomock.NewController(GinkgoT())
@@ -1559,10 +1530,6 @@ var _ = Describe("ResetCluster", func() {
 		Expect(len(events)).ShouldNot(Equal(0))
 		resetEvent := events[len(events)-1]
 		Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityError))
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -1735,7 +1702,6 @@ var _ = Describe("PrepareForInstallation", func() {
 		capi      API
 		db        *gorm.DB
 		clusterId strfmt.UUID
-		dbName    string
 		ctrl      *gomock.Controller
 
 		mockMetric        *metrics.MockAPI
@@ -1746,7 +1712,7 @@ var _ = Describe("PrepareForInstallation", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		dummy := &leader.DummyElector{}
 		mockOperators := operators.NewMockAPI(ctrl)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, mockMetric, nil, dummy, mockOperators, nil, nil, nil, nil)
@@ -1824,10 +1790,6 @@ var _ = Describe("PrepareForInstallation", func() {
 			t.validation(&cluster)
 		})
 	}
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("HandlePreInstallationChanges", func() {
@@ -1836,12 +1798,11 @@ var _ = Describe("HandlePreInstallationChanges", func() {
 		capi       API
 		db         *gorm.DB
 		clusterId  strfmt.UUID
-		dbName     string
 		mockEvents *eventsapi.MockHandler
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		dummy := &leader.DummyElector{}
 		ctrl := gomock.NewController(GinkgoT())
 		mockOperators := operators.NewMockAPI(ctrl)
@@ -1871,10 +1832,6 @@ var _ = Describe("HandlePreInstallationChanges", func() {
 		Expect(db.Take(&cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
 		Expect(cluster.InstallationPreparationCompletionStatus).Should(Equal(common.InstallationPreparationSucceeded))
 	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("SetVipsData", func() {
@@ -1885,7 +1842,6 @@ var _ = Describe("SetVipsData", func() {
 		ctrl       *gomock.Controller
 		db         *gorm.DB
 		clusterId  strfmt.UUID
-		dbName     string
 		apiLease   = `lease {
   interface "api";
   renew 0 2020/10/25 14:48:38;
@@ -1913,17 +1869,13 @@ var _ = Describe("SetVipsData", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
 		mockOperators := operators.NewMockAPI(ctrl)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEvents, nil, nil, nil, dummy, mockOperators, nil, nil, nil, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
-	})
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	tests := []struct {
@@ -2067,9 +2019,6 @@ var _ = Describe("SetVipsData", func() {
 			Expect(swag.StringValue(c.Status)).To(Equal(t.expectedState))
 		})
 	}
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("Majority groups", func() {
@@ -2082,15 +2031,10 @@ var _ = Describe("Majority groups", func() {
 		ctrl          *gomock.Controller
 		mockEvents    *eventsapi.MockHandler
 		mockMetricApi *metrics.MockAPI
-		dbName        string
 	)
 
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
-
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		dbIndex++
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
@@ -2190,13 +2134,12 @@ var _ = Describe("ready_state", func() {
 		db         *gorm.DB
 		id         strfmt.UUID
 		cluster    common.Cluster
-		dbName     string
 		ctrl       *gomock.Controller
 		mockEvents *eventsapi.MockHandler
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
@@ -2258,9 +2201,6 @@ var _ = Describe("ready_state", func() {
 			Expect(checkValidationInfoIsSorted(clusterAfterRefresh.ValidationsInfo)).Should(BeTrue())
 		})
 	})
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 func checkValidationInfoIsSorted(validationInfo string) bool {
@@ -2289,7 +2229,6 @@ var _ = Describe("insufficient_state", func() {
 		cluster      common.Cluster
 		ctrl         *gomock.Controller
 		mockHostAPI  *host.MockAPI
-		dbName       string
 	)
 
 	BeforeEach(func() {
@@ -2297,7 +2236,7 @@ var _ = Describe("insufficient_state", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockEvents := eventsapi.NewMockHandler(ctrl)
 		mockOperators := operators.NewMockAPI(ctrl)
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		dummy := &leader.DummyElector{}
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, nil, nil, dummy, mockOperators, nil, nil, nil, nil)
@@ -2317,10 +2256,6 @@ var _ = Describe("insufficient_state", func() {
 			eventstest.WithClusterIdMatcher(id.String()))).AnyTimes()
 	})
 
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
-
 	It("works", func() {
 		replyErr := clusterApi.RegisterCluster(ctx, &cluster)
 		Expect(replyErr).Should(BeNil())
@@ -2337,13 +2272,12 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 		db            *gorm.DB
 		clusterId     strfmt.UUID
 		cl            common.Cluster
-		dbName        string
 		ctrl          *gomock.Controller
 		mockHostAPI   *host.MockAPI
 		mockOperators *operators.MockAPI
 	)
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		cfg := Config{}
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).NotTo(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
@@ -2380,14 +2314,6 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(swag.StringValue(refreshedCluster.Status)).To(Equal(models.ClusterStatusReady))
 	})
-
-	AfterEach(func() {
-		common.CloseDB(db)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("Cluster tarred files", func() {
@@ -2397,7 +2323,6 @@ var _ = Describe("Cluster tarred files", func() {
 		db                    *gorm.DB
 		clusterId             strfmt.UUID
 		cl                    common.Cluster
-		dbName                string
 		ctrl                  *gomock.Controller
 		mockHostAPI           *host.MockAPI
 		mockEvents            *eventsapi.MockHandler
@@ -2423,7 +2348,7 @@ var _ = Describe("Cluster tarred files", func() {
 	}
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		cfg := Config{}
 		files = []string{"test", "test2"}
 		ctrl = gomock.NewController(GinkgoT())
@@ -2449,11 +2374,6 @@ var _ = Describe("Cluster tarred files", func() {
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
 
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("list events failed - but PrepareClusterLogFile should continue to download", func() {
@@ -2540,7 +2460,6 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		c                  common.Cluster
 		eventsHandler      eventsapi.Handler
 		mockMetric         *metrics.MockAPI
-		dbName             string
 		manifestsGenerator *network.MockManifestsGeneratorAPI
 		mockOperatorMgr    *operators.MockAPI
 	)
@@ -2549,7 +2468,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		manifestsGenerator = network.NewMockManifestsGeneratorAPI(ctrl)
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		eventsHandler = events.New(db, nil, logrus.New())
 		dummy := &leader.DummyElector{}
 		mockOperatorMgr = operators.NewMockAPI(ctrl)
@@ -2636,11 +2555,6 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("Deregister inactive clusters", func() {
@@ -2652,7 +2566,6 @@ var _ = Describe("Deregister inactive clusters", func() {
 		c             common.Cluster
 		eventsHandler eventsapi.Handler
 		mockMetric    *metrics.MockAPI
-		dbName        string
 		mockS3Client  *s3wrapper.MockAPI
 	)
 
@@ -2677,7 +2590,7 @@ var _ = Describe("Deregister inactive clusters", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockOperators := operators.NewMockAPI(ctrl)
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		eventsHandler = events.New(db, nil, logrus.New())
 		dummy := &leader.DummyElector{}
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
@@ -2686,7 +2599,7 @@ var _ = Describe("Deregister inactive clusters", func() {
 	})
 
 	It("Deregister inactive cluster", func() {
-		Expect(state.DeregisterInactiveCluster(ctx, 10, strfmt.DateTime(time.Now()))).ShouldNot(HaveOccurred())
+		Expect(state.DeregisterInactiveCluster(ctx, 10, strfmt.DateTime(time.Now().Add(time.Second*1)))).ShouldNot(HaveOccurred())
 		Expect(wasDeregisterd(db, *c.ID)).To(BeTrue())
 	})
 
@@ -2740,11 +2653,6 @@ var _ = Describe("Deregister inactive clusters", func() {
 		Expect(wasDeregisterd(db, *inactiveCluster5.ID)).To(BeFalse())
 		Expect(wasDeregisterd(db, *inactiveCluster6.ID)).To(BeFalse())
 	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("Permanently delete clusters", func() {
@@ -2758,7 +2666,6 @@ var _ = Describe("Permanently delete clusters", func() {
 		c3            common.Cluster
 		eventsHandler eventsapi.Handler
 		mockMetric    *metrics.MockAPI
-		dbName        string
 		mockS3Api     *s3wrapper.MockAPI
 	)
 
@@ -2812,7 +2719,7 @@ var _ = Describe("Permanently delete clusters", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
 		mockOperators := operators.NewMockAPI(ctrl)
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		eventsHandler = events.New(db, nil, logrus.New())
 		dummy := &leader.DummyElector{}
 		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, dummy, mockOperators, nil, nil, nil, nil)
@@ -2834,7 +2741,7 @@ var _ = Describe("Permanently delete clusters", func() {
 		mockS3Api.EXPECT().DeleteObject(gomock.Any(), c2.ID.String()).Return(false, nil).Times(1)
 		mockS3Api.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{}, nil).AnyTimes()
 
-		Expect(state.PermanentClustersDeletion(ctx, strfmt.DateTime(time.Now()), mockS3Api)).ShouldNot(HaveOccurred())
+		Expect(state.PermanentClustersDeletion(ctx, strfmt.DateTime(time.Now().Add(time.Second)), mockS3Api)).ShouldNot(HaveOccurred())
 
 		verifyClusterSubComponentsDeletion(*c1.ID, true)
 
@@ -2850,11 +2757,6 @@ var _ = Describe("Permanently delete clusters", func() {
 		verifyClusterSubComponentsDeletion(*c2.ID, false)
 		verifyClusterSubComponentsDeletion(*c3.ID, false)
 	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("Get cluster by Kube key", func() {
@@ -2864,7 +2766,6 @@ var _ = Describe("Get cluster by Kube key", func() {
 		db               *gorm.DB
 		eventsHandler    eventsapi.Handler
 		key              types.NamespacedName
-		dbName           string
 		kubeKeyName      = "test-kube-name"
 		kubeKeyNamespace = "test-kube-namespace"
 	)
@@ -2872,7 +2773,7 @@ var _ = Describe("Get cluster by Kube key", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockOperators := operators.NewMockAPI(ctrl)
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		eventsHandler = events.New(db, nil, logrus.New())
 		dummy := &leader.DummyElector{}
 		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, nil, nil, dummy, mockOperators, nil, nil, nil, nil)
@@ -2902,11 +2803,6 @@ var _ = Describe("Get cluster by Kube key", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(c2.ID.String()).Should(Equal(c1.ID.String()))
 	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
@@ -2914,22 +2810,14 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 	var (
 		db         *gorm.DB
 		clusterApi *Manager
-		ctrl       *gomock.Controller
 		cfg        Config
 		ctx        = context.Background()
-		dbName     string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
-		ctrl = gomock.NewController(GinkgoT())
+		db, _ = common.PrepareTestDB()
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	tests := []struct {
@@ -3094,24 +2982,16 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 var _ = Describe("Update AMS subscription ID", func() {
 
 	var (
-		ctrl          *gomock.Controller
 		ctx           = context.Background()
 		db            *gorm.DB
-		dbName        string
 		eventsHandler eventsapi.Handler
 		api           API
 	)
 
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoT())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		eventsHandler = events.New(db, nil, logrus.New())
 		api = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("Update AMS subscription ID", func() {
@@ -3145,7 +3025,6 @@ var _ = Describe("Validation metrics and events", func() {
 		ctrl         *gomock.Controller
 		ctx          = context.Background()
 		db           *gorm.DB
-		dbName       string
 		mockEvents   *eventsapi.MockHandler
 		mockHost     *host.MockAPI
 		mockMetric   *metrics.MockAPI
@@ -3191,18 +3070,13 @@ var _ = Describe("Validation metrics and events", func() {
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHost = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		m = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEvents, mockHost, mockMetric, nil, nil, nil, nil, mockS3Client, nil, nil)
 		c = registerTestClusterWithValidationsAndHost()
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("Test DeregisterCluster", func() {
@@ -3253,7 +3127,6 @@ var _ = Describe("Console-operator's availability", func() {
 	var (
 		ctrl       *gomock.Controller
 		db         *gorm.DB
-		dbName     string
 		clusterApi API
 		mockEvents *eventsapi.MockHandler
 		c          common.Cluster
@@ -3273,14 +3146,9 @@ var _ = Describe("Console-operator's availability", func() {
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	tests := []struct {
@@ -3367,10 +3235,8 @@ var _ = Describe("Console-operator's availability", func() {
 var _ = Describe("Test RefreshSchedulableMastersForcedTrue", func() {
 
 	var (
-		ctrl       *gomock.Controller
 		ctx        = context.Background()
 		db         *gorm.DB
-		dbName     string
 		clusterApi API
 	)
 
@@ -3389,14 +3255,8 @@ var _ = Describe("Test RefreshSchedulableMastersForcedTrue", func() {
 	}
 
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoT())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("schedulableMastersForcedTrue should be set to false when MinHostsDisableSchedulableMasters hosts or more are registered with the cluster", func() {
