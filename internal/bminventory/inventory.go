@@ -1220,8 +1220,14 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 	}
 
 	// Delete previews installation log files from object storage (if exist).
-	if err := b.clusterApi.DeleteClusterLogs(ctx, cluster, b.objectHandler); err != nil {
+	if err = b.clusterApi.DeleteClusterLogs(ctx, cluster, b.objectHandler); err != nil {
 		log.WithError(err).Warnf("Failed deleting s3 logs of cluster %s", cluster.ID.String())
+	}
+
+	clusterInfraenvs, err := b.getClusterInfraenvs(ctx, cluster)
+	if err != nil {
+		b.log.WithError(err).Errorf("Failed to get infraenvs for cluster %s", cluster.ID.String())
+		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("Failed to get infraenvs for cluster"))
 	}
 
 	go func() {
@@ -1237,7 +1243,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 			}
 		}()
 
-		if err = b.generateClusterInstallConfig(asyncCtx, *cluster); err != nil {
+		if err = b.generateClusterInstallConfig(asyncCtx, *cluster, clusterInfraenvs); err != nil {
 			return
 		}
 		log.Infof("generated ignition for cluster %s", cluster.ID.String())
@@ -1477,6 +1483,7 @@ func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, p
 func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster *common.Cluster
+	var clusterInfraenvs []*common.InfraEnv
 	var err error
 	query := "id = ?"
 
@@ -1499,7 +1506,13 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 		return nil, err
 	}
 
-	if err = b.installConfigBuilder.ValidateInstallConfigPatch(cluster, params.InstallConfigParams); err != nil {
+	clusterInfraenvs, err = b.getClusterInfraenvs(ctx, cluster)
+	if err != nil {
+		b.log.WithError(err).Errorf("Failed to get infraenvs for cluster %s", cluster.ID.String())
+		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("Failed to get infraenvs for cluster"))
+	}
+
+	if err = b.installConfigBuilder.ValidateInstallConfigPatch(cluster, clusterInfraenvs, params.InstallConfigParams); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -1557,10 +1570,15 @@ func (b *bareMetalInventory) setInstallConfigOverridesUsage(featureUsages string
 	return nil
 }
 
-func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster common.Cluster) error {
+func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster common.Cluster, clusterInfraenvs []*common.InfraEnv) error {
 	log := logutil.FromContext(ctx, b.log)
 
-	cfg, err := b.installConfigBuilder.GetInstallConfig(&cluster, b.Config.InstallRHCa, ignition.RedhatRootCA)
+	rhRootCa := ignition.RedhatRootCA
+	if !b.Config.InstallRHCa {
+		rhRootCa = ""
+	}
+
+	cfg, err := b.installConfigBuilder.GetInstallConfig(&cluster, clusterInfraenvs, rhRootCa)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get install config for cluster %s", cluster.ID)
 		return errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
@@ -3818,6 +3836,35 @@ func (b *bareMetalInventory) UpdateHostApprovedInternal(ctx context.Context, inf
 	return nil
 }
 
+func (b *bareMetalInventory) getClusterInfraenvs(ctx context.Context, c *common.Cluster) ([]*common.InfraEnv, error) {
+	// Cluster hosts usually originate from the same infraenv, keep track
+	// of which ones we've already seen so we don't pull them twice
+	infraenvIDSet := make(map[string]bool)
+
+	infraenvs := make([]*common.InfraEnv, 0)
+	for _, host := range c.Hosts {
+		if host.InfraEnvID == "" {
+			return nil, fmt.Errorf("host %s has no infra_env_id", host.ID)
+		}
+
+		if _, ok := infraenvIDSet[string(host.InfraEnvID)]; ok {
+			// We already have this infraenv in the list
+			continue
+		}
+
+		infraenv, err := common.GetInfraEnvFromDB(b.db, host.InfraEnvID)
+		if err != nil {
+			return nil, fmt.Errorf("listing cluster infraenvs failed for host %s infra_env_id %s: %w",
+				host.ID, host.InfraEnvID, err)
+		}
+
+		infraenvs = append(infraenvs, infraenv)
+		infraenvIDSet[string(host.InfraEnvID)] = true
+	}
+
+	return infraenvs, nil
+}
+
 func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string, flags ...interface{}) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 
@@ -4204,6 +4251,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 			SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
 			CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
 			KernelArguments:        kernelArguments,
+			AdditionalTrustBundle:  params.InfraenvCreateParams.AdditionalTrustBundle,
 		},
 		KubeKeyNamespace: kubeKey.Namespace,
 		ImageTokenKey:    imageTokenKey,
@@ -4592,6 +4640,10 @@ func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *c
 
 	if params.InfraEnvUpdateParams.ImageType != "" && params.InfraEnvUpdateParams.ImageType != common.ImageTypeValue(infraEnv.Type) {
 		updates["type"] = params.InfraEnvUpdateParams.ImageType
+	}
+
+	if params.InfraEnvUpdateParams.AdditionalTrustBundle != "" && params.InfraEnvUpdateParams.AdditionalTrustBundle != infraEnv.AdditionalTrustBundle {
+		updates["additional_trust_bundle"] = params.InfraEnvUpdateParams.AdditionalTrustBundle
 	}
 
 	if params.InfraEnvUpdateParams.StaticNetworkConfig != nil {
