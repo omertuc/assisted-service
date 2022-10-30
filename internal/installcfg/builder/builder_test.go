@@ -381,7 +381,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		// Arbitrary install config override that happens to have additionalTrustBundle
 		cluster.InstallConfigOverrides = fmt.Sprintf(
 			`{"additionalTrustBundle":"%s","imageContentSources":[{"mirrors":["f04-h09-000-r640.rdu2.scalelab.redhat.com:5000/localimages/local-release-image"],"source":"quay.io/openshift-release-dev/ocp-release"},{"mirrors":["f04-h09-000-r640.rdu2.scalelab.redhat.com:5000/localimages/local-release-image"],"source":"quay.io/openshift-release-dev/ocp-v4.0-art-dev"}]}`,
-			testBundle4)
+			strings.ReplaceAll(testBundle4, "\n", "\\n"))
 
 		ca := testBundle1
 		mirrorCA := testBundle2
@@ -389,11 +389,11 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		gomock.InOrder(mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false),
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true))
 		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte(mirrorCA), nil).Times(1)
-		data, err := installConfig.GetInstallConfig(&cluster, true, ca)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, ca)
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(result.AdditionalTrustBundle).Should(Equal(fmt.Sprintf("%s\n%s\n%s", testBundle1, testBundle2, testBundle4)))
+		Expect(result.AdditionalTrustBundle).Should(Equal(fmt.Sprintf("%s\n%s\n%s", testBundle4, testBundle1, testBundle2)))
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
@@ -696,7 +696,7 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 	It("Fails when provided invalid json fields", func() {
 		s := `{"apiVersion": "v3", "foo": "example.com", "metadata": {"name": "things"}}`
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
-		err := installConfig.ValidateInstallConfigPatch(cluster, s)
+		err := installConfig.ValidateInstallConfigPatch(cluster, clusterInfraenvs, s)
 		Expect(err).Should(HaveOccurred())
 	})
 

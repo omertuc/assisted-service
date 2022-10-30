@@ -187,7 +187,7 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, cluster
 	}
 	caContent := i.mergeAllCASources(cluster, clusterInfraenvs, rhRootCA, cfg.AdditionalTrustBundle)
 	if caContent != "" {
-		cfg.AdditionalTrustBundle =  caContent
+		cfg.AdditionalTrustBundle = caContent
 	}
 
 	return cfg, nil
@@ -233,11 +233,18 @@ func (i *installConfigBuilder) getHypethreadingConfiguration(cluster *common.Clu
 }
 
 // mergeAllCASources merges all the CA sources into a single string, seperated
-// by newlines. CA sources include the Red Hat root CA (used during the
-// product's CI tests), user configured mirror registry CAs, and additional
-// trust bundle from the cluster's infraenvs.
-func (i *installConfigBuilder) mergeAllCASources(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string) string {
-	certs := make([]string, 0)
+// by newlines. CA sources include:
+// - The Red Hat root CA (used during the product's CI tests),
+// - User configured mirror registry CAs
+// - Additional trust bundle from the cluster's infraenvs
+// - Certs from user-provided install config overrides
+func (i *installConfigBuilder) mergeAllCASources(cluster *common.Cluster,
+	clusterInfraenvs []*common.InfraEnv, rhRootCA string, installConfigOverrideCerts string) string {
+	certs := []string{}
+
+	if installConfigOverrideCerts != "" {
+		certs = append(certs, installConfigOverrideCerts)
+	}
 
 	if rhRootCA != "" {
 		certs = append(certs, rhRootCA)
@@ -257,5 +264,5 @@ func (i *installConfigBuilder) mergeAllCASources(cluster *common.Cluster, cluste
 		}
 	}
 
-	return strings.Join(certs, "\n")
+	return strings.TrimSpace(strings.Join(certs, "\n"))
 }

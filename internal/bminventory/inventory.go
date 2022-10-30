@@ -4195,6 +4195,12 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		}
 	}
 
+	// The OpenShift installer validation code for the additional trust bundle
+	// is buggy and doesn't react well to additional newlines at the end of the
+	// certs. We need to strip them out to not bother assisted users with this
+	// quirk.
+	params.InfraenvCreateParams.AdditionalTrustBundle = strings.TrimSpace(params.InfraenvCreateParams.AdditionalTrustBundle)
+
 	if err = b.validateInfraEnvCreateParams(ctx, params, cluster); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -4355,6 +4361,12 @@ func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, p
 
 	if params.InfraenvCreateParams.StaticNetworkConfig != nil {
 		if err = b.staticNetworkConfig.ValidateStaticConfigParams(ctx, params.InfraenvCreateParams.StaticNetworkConfig); err != nil {
+			return err
+		}
+	}
+
+	if params.InfraenvCreateParams.AdditionalTrustBundle != "" {
+		if err = validations.ValidatePEMCertificateBundle(params.InfraenvCreateParams.AdditionalTrustBundle); err != nil {
 			return err
 		}
 	}
@@ -4549,6 +4561,12 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		}
 	}
 
+	if params.InfraEnvUpdateParams.AdditionalTrustBundle != "" {
+		if err = validations.ValidatePEMCertificateBundle(params.InfraEnvUpdateParams.AdditionalTrustBundle); err != nil {
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
 	if err = b.validateKernelArguments(ctx, params.InfraEnvUpdateParams.KernelArguments); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -4704,6 +4722,12 @@ func (b *bareMetalInventory) validateAndUpdateInfraEnvParams(ctx context.Context
 		}
 		*params.InfraEnvUpdateParams.SSHAuthorizedKey = sshPublicKey
 	}
+
+	// The OpenShift installer validation code for the additional trust bundle
+	// is buggy and doesn't react well to additional newlines at the end of the
+	// certs. We need to strip them out to not bother assisted users with this
+	// quirk.
+	params.InfraEnvUpdateParams.AdditionalTrustBundle = strings.TrimSpace(params.InfraEnvUpdateParams.AdditionalTrustBundle)
 
 	return *params, nil
 }
