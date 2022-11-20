@@ -172,7 +172,6 @@ const (
 	ReasonKubeconfigSecretFetchFailure string = "ReasonKubeconfigSecretFetchFailure"
 	// ReasonSpokeClientCreationFailure when there was a failure creating spoke client.
 	ReasonSpokeClientCreationFailure string = "ReasonSpokeClientCreationFailure"
-
 	// ReasonKonnectivityAgentFailure when there was a failure creating the namespace.
 	ReasonKonnectivityAgentFailure string = "KonnectivityAgentFailure"
 
