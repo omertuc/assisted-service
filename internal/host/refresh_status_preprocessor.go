@@ -281,6 +281,10 @@ func newValidations(v *validator) []validation {
 			id:        NoIPCollisionsInNetwork,
 			condition: v.noIPCollisionsInNetwork,
 		},
+		{
+			id:        MediaPreloaded,
+			condition: v.mediaPreloaded,
+		},
 	}
 }
 

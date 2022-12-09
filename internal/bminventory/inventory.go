@@ -5001,6 +5001,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		SuggestedRole:            defaultRole,
 		InfraEnvID:               *infraEnv.ID,
 		IgnitionEndpointTokenSet: false,
+		PreloadStatus:            models.PreloadStatusUnknown,
 	}
 
 	if cluster != nil {
@@ -5674,6 +5675,20 @@ func (b *bareMetalInventory) v2DownloadClusterFilesInternal(ctx context.Context,
 	}
 
 	return respBody, contentLength, nil
+}
+
+func (b *bareMetalInventory) V2UpdateHostMediaPreloadStatus(ctx context.Context, params installer.V2UpdateHostMediaPreloadStatusParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("update media preload status on host %s infra-env %s to %s", params.HostID, params.InfraEnvID, common.MediaPreloadValue(params.MediaPreloadStatusParams.PreloadStatus))
+	currentHost, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	if err == nil {
+		err = b.hostApi.UpdateMediaPreloadStatus(ctx, &currentHost.Host, string(common.MediaPreloadValue(params.MediaPreloadStatusParams.PreloadStatus)))
+	}
+	if err != nil {
+		b.log.WithError(err).Errorf("failed to update log progress %s on infra-env %s host %s", common.MediaPreloadValue(params.MediaPreloadStatusParams.PreloadStatus), params.InfraEnvID.String(), params.HostID.String())
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2UpdateHostMediaPreloadStatusNoContent()
 }
 
 func (b *bareMetalInventory) V2UpdateHostLogsProgress(ctx context.Context, params installer.V2UpdateHostLogsProgressParams) middleware.Responder {

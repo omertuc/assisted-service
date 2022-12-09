@@ -4993,6 +4993,100 @@ func init() {
         }
       }
     },
+    "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/media-preload-status": {
+      "put": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Update media preload status.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2UpdateHostMediaPreloadStatus",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra-env of the host whose media preload status is being updated.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host whose media preload status is being updated.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Parameters for updating media preload status.",
+            "name": "media-preload-status-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/media-preload-status-params"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Update received"
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress": {
       "put": {
         "security": [
@@ -7196,6 +7290,10 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "preload_status": {
+          "description": "The host's current virtual media preload status",
+          "$ref": "#/definitions/preload_status"
+        },
         "progress": {
           "$ref": "#/definitions/host-progress-info"
         },
@@ -7536,7 +7634,8 @@ func init() {
         "compatible-agent",
         "no-skip-installation-disk",
         "no-skip-missing-disk",
-        "no-ip-collisions-in-network"
+        "no-ip-collisions-in-network",
+        "media-preloaded"
       ]
     },
     "host_network": {
@@ -8491,6 +8590,18 @@ func init() {
         }
       }
     },
+    "media-preload-status-params": {
+      "type": "object",
+      "required": [
+        "preload_status"
+      ],
+      "properties": {
+        "preload_status": {
+          "description": "The status of media preloading.",
+          "$ref": "#/definitions/preload_status"
+        }
+      }
+    },
     "memory": {
       "type": "object",
       "properties": {
@@ -8881,6 +8992,16 @@ func init() {
           }
         }
       }
+    },
+    "preload_status": {
+      "type": "string",
+      "enum": [
+        "unknown",
+        "preloading",
+        "preloaded",
+        "preloading_failed"
+      ],
+      "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
     },
     "presigned-url": {
       "type": "object",
@@ -14522,6 +14643,100 @@ func init() {
         }
       }
     },
+    "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/media-preload-status": {
+      "put": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Update media preload status.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2UpdateHostMediaPreloadStatus",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra-env of the host whose media preload status is being updated.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host whose media preload status is being updated.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Parameters for updating media preload status.",
+            "name": "media-preload-status-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/media-preload-status-params"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Update received"
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress": {
       "put": {
         "security": [
@@ -16816,6 +17031,10 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "preload_status": {
+          "description": "The host's current virtual media preload status",
+          "$ref": "#/definitions/preload_status"
+        },
         "progress": {
           "$ref": "#/definitions/host-progress-info"
         },
@@ -17156,7 +17375,8 @@ func init() {
         "compatible-agent",
         "no-skip-installation-disk",
         "no-skip-missing-disk",
-        "no-ip-collisions-in-network"
+        "no-ip-collisions-in-network",
+        "media-preloaded"
       ]
     },
     "host_network": {
@@ -18102,6 +18322,18 @@ func init() {
         }
       }
     },
+    "media-preload-status-params": {
+      "type": "object",
+      "required": [
+        "preload_status"
+      ],
+      "properties": {
+        "preload_status": {
+          "description": "The status of media preloading.",
+          "$ref": "#/definitions/preload_status"
+        }
+      }
+    },
     "memory": {
       "type": "object",
       "properties": {
@@ -18492,6 +18724,16 @@ func init() {
           }
         }
       }
+    },
+    "preload_status": {
+      "type": "string",
+      "enum": [
+        "unknown",
+        "preloading",
+        "preloaded",
+        "preloading_failed"
+      ],
+      "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
     },
     "presigned-url": {
       "type": "object",

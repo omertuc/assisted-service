@@ -93,6 +93,7 @@ type API interface {
 	RefreshRole(ctx context.Context, h *models.Host, db *gorm.DB) error
 	IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger) (bool, error)
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
+	UpdateMediaPreloadStatus(ctx context.Context, h *models.Host, preloadStatus string) error
 	UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error
 	PermanentHostsDeletion(olderThan strfmt.DateTime) error
 	ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error
@@ -639,6 +640,13 @@ func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap 
 	}
 	return nil
 }
+
+func (m *Manager) UpdateMediaPreloadStatus(ctx context.Context, h *models.Host, preloadStatus string) error {
+	_, err := hostutil.UpdateMediaPreloadStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
+		swag.StringValue(h.MediaStatus), preloadStatus)
+	return err
+}
+
 func (m *Manager) UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error {
 	_, err := hostutil.UpdateLogsProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
 		swag.StringValue(h.Status), progress)

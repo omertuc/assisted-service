@@ -49,6 +49,7 @@ const (
 	NoSkipInstallationDisk                         = validationID(models.HostValidationIDNoSkipInstallationDisk)
 	NoSkipMissingDisk                              = validationID(models.HostValidationIDNoSkipMissingDisk)
 	NoIPCollisionsInNetwork                        = validationID(models.HostValidationIDNoIPCollisionsInNetwork)
+	MediaPreloaded                                 = validationID(models.HostValidationIDMediaPreloaded)
 )
 
 func (v validationID) category() (string, error) {
@@ -87,7 +88,8 @@ func (v validationID) category() (string, error) {
 		DiskEncryptionRequirementsSatisfied,
 		CompatibleAgent,
 		NoSkipInstallationDisk,
-		NoSkipMissingDisk:
+		NoSkipMissingDisk,
+		MediaPreloaded:
 		return "hardware", nil
 	case AreLsoRequirementsSatisfied,
 		AreOdfRequirementsSatisfied,

@@ -187,6 +187,9 @@ type API interface {
 	   V2UpdateHostLogsProgress Update log collection state and progress.*/
 	V2UpdateHostLogsProgress(ctx context.Context, params *V2UpdateHostLogsProgressParams) (*V2UpdateHostLogsProgressNoContent, error)
 	/*
+	   V2UpdateHostMediaPreloadStatus Update media preload status.*/
+	V2UpdateHostMediaPreloadStatus(ctx context.Context, params *V2UpdateHostMediaPreloadStatusParams) (*V2UpdateHostMediaPreloadStatusNoContent, error)
+	/*
 	   V2UploadClusterIngressCert Transfer the ingress certificate for the cluster.*/
 	V2UploadClusterIngressCert(ctx context.Context, params *V2UploadClusterIngressCertParams) (*V2UploadClusterIngressCertCreated, error)
 }
@@ -1590,6 +1593,31 @@ func (a *Client) V2UpdateHostLogsProgress(ctx context.Context, params *V2UpdateH
 		return nil, err
 	}
 	return result.(*V2UpdateHostLogsProgressNoContent), nil
+
+}
+
+/*
+V2UpdateHostMediaPreloadStatus Update media preload status.
+*/
+func (a *Client) V2UpdateHostMediaPreloadStatus(ctx context.Context, params *V2UpdateHostMediaPreloadStatusParams) (*V2UpdateHostMediaPreloadStatusNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2UpdateHostMediaPreloadStatus",
+		Method:             "PUT",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/media-preload-status",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2UpdateHostMediaPreloadStatusReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2UpdateHostMediaPreloadStatusNoContent), nil
 
 }
 

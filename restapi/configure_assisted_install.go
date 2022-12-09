@@ -205,6 +205,9 @@ type InstallerAPI interface {
 	/* V2UpdateHostLogsProgress Update log collection state and progress. */
 	V2UpdateHostLogsProgress(ctx context.Context, params installer.V2UpdateHostLogsProgressParams) middleware.Responder
 
+	/* V2UpdateHostMediaPreloadStatus Update media preload status. */
+	V2UpdateHostMediaPreloadStatus(ctx context.Context, params installer.V2UpdateHostMediaPreloadStatusParams) middleware.Responder
+
 	/* V2UploadClusterIngressCert Transfer the ingress certificate for the cluster. */
 	V2UploadClusterIngressCert(ctx context.Context, params installer.V2UploadClusterIngressCertParams) middleware.Responder
 }
@@ -705,6 +708,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2UpdateHostLogsProgress(ctx, params)
+	})
+	api.InstallerV2UpdateHostMediaPreloadStatusHandler = installer.V2UpdateHostMediaPreloadStatusHandlerFunc(func(params installer.V2UpdateHostMediaPreloadStatusParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2UpdateHostMediaPreloadStatus(ctx, params)
 	})
 	api.InstallerV2UploadClusterIngressCertHandler = installer.V2UploadClusterIngressCertHandlerFunc(func(params installer.V2UploadClusterIngressCertParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

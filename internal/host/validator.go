@@ -1815,6 +1815,27 @@ func (v *validator) noIPCollisionsInNetwork(c *validationContext) (ValidationSta
 	return ValidationSuccess, fmt.Sprintf("No IP collisions were detected by host %s", c.host.ID)
 }
 
+func (v *validator) mediaPreloaded(c *validationContext) (ValidationStatus, string) {
+	if c.host == nil {
+		return ValidationError, "Host has not yet been defined"
+	}
+
+	switch c.host.PreloadStatus {
+	case "":
+		return ValidationSuccess, "Legacy host, no media preload"
+	case models.PreloadStatusUnknown:
+		return ValidationPending, "Media preloading has not begun"
+	case models.PreloadStatusPreloading:
+		return ValidationPending, "Media preloading in progress"
+	case models.PreloadStatusPreloaded:
+		return ValidationSuccess, "Media preloaded"
+	case models.PreloadStatusPreloadingFailed:
+		return ValidationFailure, "Media preloading failed"
+	default:
+		return ValidationError, "Unknown media preloading status"
+	}
+}
+
 func (v *validator) inventoryHasIP(inventory *models.Inventory, ipAddress string) (bool, error) {
 	ip := net.ParseIP(ipAddress)
 	if ip != nil {

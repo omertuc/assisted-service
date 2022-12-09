@@ -30,6 +30,20 @@ func UpdateHostProgress(ctx context.Context, log logrus.FieldLogger, db *gorm.DB
 	return UpdateHostStatus(ctx, log, db, eventsHandler, infraEnvId, hostId, srcStatus, newStatus, statusInfo, extra...)
 }
 
+func UpdateMediaPreloadStatus(_ context.Context, log logrus.FieldLogger, db *gorm.DB, _ eventsapi.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID, srcStatus string, newPreloadStatus string, extra ...interface{}) (*common.Host, error) {
+	var host *common.Host
+	var err error
+
+	extra = append(append(make([]interface{}, 0), "preload_status", newPreloadStatus), extra...)
+
+	if host, err = UpdateHost(log, db, infraEnvId, hostId, srcStatus, extra...); err != nil {
+		log.WithError(err).Errorf("failed to update preload status %+v on host %s", extra, hostId)
+		return nil, err
+	}
+	log.Infof("host %s has been updated with the following preload status %+v", hostId, extra)
+	return host, nil
+}
+
 func UpdateLogsProgress(_ context.Context, log logrus.FieldLogger, db *gorm.DB, _ eventsapi.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID, srcStatus string, progress string, extra ...interface{}) (*common.Host, error) {
 	var host *common.Host
 	var err error
